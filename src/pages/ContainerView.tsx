@@ -1,23 +1,36 @@
-import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Package, Lock, MapPin, ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { Package, MapPin, ArrowLeft, List, FileText, Image } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { mockContainers } from '@/data/mockContainers';
-import { containerColors, ContainerColor } from '@/types/container';
+import { containerColors, Container } from '@/types/container';
+import { useQuery } from '@tanstack/react-query';
+
+const fetchContainer = async (uuid: string): Promise<Container> => {
+  const response = await fetch(`/api/containers/uuid/${uuid}/`);
+  if (!response.ok) {
+    throw new Error('Container not found');
+  }
+  return response.json();
+};
 
 const ContainerView = () => {
   const { username, containerId } = useParams();
-  const [password, setPassword] = useState('');
-  const [isUnlocked, setIsUnlocked] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
 
-  // Find container by ID
-  const container = mockContainers.find(c => c.id === containerId);
+  const { data: container, isLoading, error } = useQuery({
+    queryKey: ['container', containerId],
+    queryFn: () => fetchContainer(containerId || ''),
+    enabled: !!containerId,
+  });
 
-  if (!container) {
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
+  if (error || !container) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="text-center">
@@ -41,64 +54,7 @@ const ContainerView = () => {
     );
   }
 
-  const colorValue = containerColors[container.color as ContainerColor] || containerColors.teal;
-  const needsPassword = container.isPasswordProtected && !isUnlocked;
-
-  const handleUnlock = (e: React.FormEvent) => {
-    e.preventDefault();
-    // For demo, accept any password
-    if (password.length >= 1) {
-      setIsUnlocked(true);
-      setError('');
-    } else {
-      setError('Please enter the password');
-    }
-  };
-
-  if (needsPassword) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="container-card p-8 max-w-md w-full text-center">
-          <div 
-            className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
-            style={{ backgroundColor: `${colorValue}20` }}
-          >
-            <Lock className="w-8 h-8" style={{ color: colorValue }} />
-          </div>
-          
-          <h1 className="font-display text-2xl font-bold text-foreground mb-2">
-            Protected Container
-          </h1>
-          <p className="text-muted-foreground mb-6">
-            This container is password protected. Enter the password to view its contents.
-          </p>
-
-          <form onSubmit={handleUnlock} className="space-y-4">
-            <div className="relative">
-              <Input
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter password"
-                className="pr-10"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-            {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button type="submit" className="w-full">
-              Unlock Container
-            </Button>
-          </form>
-        </div>
-      </div>
-    );
-  }
+  const colorValue = containerColors[container.color] || containerColors.blue;
 
   return (
     <div className="min-h-screen bg-background">
@@ -114,7 +70,7 @@ const ContainerView = () => {
             </span>
           </div>
           <span className="text-sm text-muted-foreground font-mono">
-            {username}/{container.shortId}
+            {username}/{container.readable_id}
           </span>
         </div>
       </header>
@@ -142,38 +98,80 @@ const ContainerView = () => {
                   <span>{container.location}</span>
                 </div>
                 <span className="font-mono font-medium text-primary">
-                  {container.shortId}
+                  {container.readable_id}
                 </span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Items List */}
+        {/* Contents */}
         <div className="container-card p-6">
-          <h2 className="font-display text-lg font-semibold mb-4">
-            Contents ({container.items.length} items)
-          </h2>
-          <div className="divide-y divide-border">
-            {container.items.map((item) => (
-              <div key={item.id} className="py-3 flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-foreground">{item.name}</p>
-                  {item.notes && (
-                    <p className="text-sm text-muted-foreground">{item.notes}</p>
-                  )}
-                </div>
-                {item.quantity && item.quantity > 1 && (
-                  <Badge variant="secondary">×{item.quantity}</Badge>
-                )}
+          {container.items.length > 0 ? (
+            <>
+              <div className="flex items-center gap-2 mb-4">
+                <List className="w-5 h-5 text-muted-foreground" />
+                <h2 className="font-display text-lg font-semibold">
+                  Contents ({container.items.length} items)
+                </h2>
               </div>
-            ))}
-          </div>
+              <div className="divide-y divide-border">
+                {container.items.map((item) => (
+                  <div key={item.id} className="py-3 flex items-center justify-between">
+                    <p className="font-medium text-foreground">{item.name}</p>
+                    {item.quantity > 1 && (
+                      <Badge variant="secondary">×{item.quantity}</Badge>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : container.texts.length > 0 ? (
+            <>
+              <div className="flex items-center gap-2 mb-4">
+                <FileText className="w-5 h-5 text-muted-foreground" />
+                <h2 className="font-display text-lg font-semibold">
+                  Contents
+                </h2>
+              </div>
+              <div className="space-y-4">
+                {container.texts.map((textItem) => (
+                  <p key={textItem.id} className="text-foreground whitespace-pre-wrap">
+                    {textItem.text}
+                  </p>
+                ))}
+              </div>
+            </>
+          ) : container.photos.length > 0 ? (
+            <>
+              <div className="flex items-center gap-2 mb-4">
+                <Image className="w-5 h-5 text-muted-foreground" />
+                <h2 className="font-display text-lg font-semibold">
+                  Contents
+                </h2>
+              </div>
+              <div className="grid gap-4">
+                {container.photos.map((photo) => (
+                  <img
+                    key={photo.id}
+                    src={photo.image}
+                    alt="Container contents"
+                    className="w-full rounded-lg"
+                  />
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <Package className="w-12 h-12 mx-auto mb-2 opacity-50" />
+              <p>No contents added yet</p>
+            </div>
+          )}
         </div>
 
         {/* Footer info */}
         <p className="text-center text-sm text-muted-foreground mt-8">
-          Last updated {container.updatedAt.toLocaleDateString()}
+          Last updated {new Date(container.updated_at).toLocaleDateString()}
         </p>
       </main>
     </div>

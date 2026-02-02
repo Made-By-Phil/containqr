@@ -1,8 +1,9 @@
-import { ArrowLeft, Edit2, Trash2, Lock, MapPin, Calendar, Package } from 'lucide-react';
-import { Container, containerColors, ContainerColor } from '@/types/container';
+import { ArrowLeft, Edit2, Trash2, MapPin, Calendar, Package, List, FileText, Image, Link as LinkIcon } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Container, containerColors } from '@/types/container';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { QRCodeDisplay } from './QRCodeDisplay';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ContainerDetailProps {
   container: Container;
@@ -11,7 +12,9 @@ interface ContainerDetailProps {
 }
 
 export function ContainerDetail({ container, onBack, onEdit }: ContainerDetailProps) {
-  const colorValue = containerColors[container.color as ContainerColor] || containerColors.teal;
+  const { user } = useAuth();
+  const colorValue = containerColors[container.color] || containerColors.blue;
+  const publicUrl = `/${user?.username}/${container.uuid}`;
   
   return (
     <div className="animate-fade-in">
@@ -52,12 +55,6 @@ export function ContainerDetail({ container, onBack, onEdit }: ContainerDetailPr
                   <h1 className="font-display text-2xl font-bold text-foreground">
                     {container.name}
                   </h1>
-                  {container.isPasswordProtected && (
-                    <Badge variant="secondary" className="gap-1">
-                      <Lock className="w-3 h-3" />
-                      Protected
-                    </Badge>
-                  )}
                 </div>
                 <div className="flex items-center gap-4 text-muted-foreground">
                   <div className="flex items-center gap-1.5">
@@ -66,33 +63,75 @@ export function ContainerDetail({ container, onBack, onEdit }: ContainerDetailPr
                   </div>
                   <div className="flex items-center gap-1.5">
                     <Calendar className="w-4 h-4" />
-                    <span>Updated {container.updatedAt.toLocaleDateString()}</span>
+                    <span>Updated {new Date(container.updated_at).toLocaleDateString()}</span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Items List */}
+          {/* Contents */}
           <div className="container-card p-6">
-            <h2 className="font-display text-lg font-semibold mb-4">
-              Contents ({container.items.length} items)
-            </h2>
-            <div className="divide-y divide-border">
-              {container.items.map((item) => (
-                <div key={item.id} className="py-3 flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-foreground">{item.name}</p>
-                    {item.notes && (
-                      <p className="text-sm text-muted-foreground">{item.notes}</p>
-                    )}
-                  </div>
-                  {item.quantity && item.quantity > 1 && (
-                    <Badge variant="secondary">×{item.quantity}</Badge>
-                  )}
+            {container.items.length > 0 ? (
+              <>
+                <div className="flex items-center gap-2 mb-4">
+                  <List className="w-5 h-5 text-muted-foreground" />
+                  <h2 className="font-display text-lg font-semibold">
+                    Contents ({container.items.length} items)
+                  </h2>
                 </div>
-              ))}
-            </div>
+                <div className="divide-y divide-border">
+                  {container.items.map((item) => (
+                    <div key={item.id} className="py-3 flex items-center justify-between">
+                      <p className="font-medium text-foreground">{item.name}</p>
+                      {item.quantity > 1 && (
+                        <Badge variant="secondary">×{item.quantity}</Badge>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : container.texts.length > 0 ? (
+              <>
+                <div className="flex items-center gap-2 mb-4">
+                  <FileText className="w-5 h-5 text-muted-foreground" />
+                  <h2 className="font-display text-lg font-semibold">
+                    Contents
+                  </h2>
+                </div>
+                <div className="space-y-4">
+                  {container.texts.map((textItem) => (
+                    <p key={textItem.id} className="text-foreground whitespace-pre-wrap">
+                      {textItem.text}
+                    </p>
+                  ))}
+                </div>
+              </>
+            ) : container.photos.length > 0 ? (
+              <>
+                <div className="flex items-center gap-2 mb-4">
+                  <Image className="w-5 h-5 text-muted-foreground" />
+                  <h2 className="font-display text-lg font-semibold">
+                    Contents
+                  </h2>
+                </div>
+                <div className="grid gap-4">
+                  {container.photos.map((photo) => (
+                    <img
+                      key={photo.id}
+                      src={photo.image}
+                      alt="Container contents"
+                      className="w-full rounded-lg"
+                    />
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Package className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>No contents added yet</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -102,12 +141,15 @@ export function ContainerDetail({ container, onBack, onEdit }: ContainerDetailPr
             <h2 className="font-display text-lg font-semibold mb-4 text-center">
               Container Label
             </h2>
-            <QRCodeDisplay
-              shortId={container.shortId}
-              containerId={container.id}
-              containerName={container.name}
-              size="lg"
-            />
+            <img src={`/api/qr-code/${container.uuid}/`} alt={`QR code for ${container.name}`} />
+            <p className="text-center font-bold text-lg mt-2">{container.readable_id}</p>
+            <Link
+              to={publicUrl}
+              className="flex items-center justify-center gap-1.5 text-sm text-muted-foreground hover:text-primary mt-3"
+            >
+              <LinkIcon className="w-3.5 h-3.5" />
+              <span className="truncate">{window.location.origin}{publicUrl}</span>
+            </Link>
           </div>
         </div>
       </div>

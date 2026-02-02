@@ -2,7 +2,7 @@ import { QrCode, Printer, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface QRCodeDisplayProps {
-  shortId: string;
+  readableId: string;
   containerId: string;
   containerName: string;
   size?: 'sm' | 'md' | 'lg';
@@ -15,12 +15,12 @@ const sizeMap = {
   lg: 180,
 };
 
-export function QRCodeDisplay({ 
-  shortId, 
-  containerId, 
+export function QRCodeDisplay({
+  readableId,
+  containerId,
   containerName,
   size = 'md',
-  showActions = true 
+  showActions = true
 }: QRCodeDisplayProps) {
   const qrSize = sizeMap[size];
   
@@ -67,9 +67,9 @@ export function QRCodeDisplay({
           </div>
         </div>
         
-        {/* Short ID Badge */}
+        {/* Readable ID Badge */}
         <div className="font-display text-xl font-bold text-foreground tracking-wider">
-          {shortId}
+          {readableId}
         </div>
         
         <p className="text-sm text-muted-foreground text-center max-w-[200px] truncate">
