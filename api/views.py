@@ -84,6 +84,7 @@ class ContainerListView(generics.ListCreateAPIView):
 class ContainerDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ContainerSerializer
     queryset = Container.objects.all()
+    parser_classes = (MultiPartParser, FormParser)
 
 class ContainerByUUIDView(generics.RetrieveAPIView):
     serializer_class = ContainerSerializer

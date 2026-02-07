@@ -1,9 +1,11 @@
-import { ArrowLeft, Edit2, Trash2, MapPin, Calendar, Package, List, FileText, Image, Link as LinkIcon } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowLeft, Edit2, Trash2, MapPin, Calendar, Package, List, FileText, Image, Link as LinkIcon, Printer } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Container, containerColors } from '@/types/container';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
+import { PrintLabelDialog } from '@/components/PrintLabelDialog';
 
 interface ContainerDetailProps {
   container: Container;
@@ -13,11 +15,13 @@ interface ContainerDetailProps {
 
 export function ContainerDetail({ container, onBack, onEdit }: ContainerDetailProps) {
   const { user } = useAuth();
+  const [printDialogOpen, setPrintDialogOpen] = useState(false);
   const colorValue = containerColors[container.color] || containerColors.blue;
   const publicUrl = `/${user?.username}/${container.uuid}`;
+  const qrCodeUrl = `/api/qr-code/${container.uuid}/`;
   
   return (
-    <div className="animate-fade-in">
+    <div>
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <Button variant="ghost" onClick={onBack} className="gap-2">
@@ -141,7 +145,7 @@ export function ContainerDetail({ container, onBack, onEdit }: ContainerDetailPr
             <h2 className="font-display text-lg font-semibold mb-4 text-center">
               Container Label
             </h2>
-            <img src={`/api/qr-code/${container.uuid}/`} alt={`QR code for ${container.name}`} />
+            <img src={qrCodeUrl} alt={`QR code for ${container.name}`} />
             <p className="text-center font-bold text-lg mt-2">{container.readable_id}</p>
             <Link
               to={publicUrl}
@@ -150,9 +154,24 @@ export function ContainerDetail({ container, onBack, onEdit }: ContainerDetailPr
               <LinkIcon className="w-3.5 h-3.5" />
               <span className="truncate">{window.location.origin}{publicUrl}</span>
             </Link>
+            <Button
+              variant="outline"
+              className="w-full mt-4 gap-2"
+              onClick={() => setPrintDialogOpen(true)}
+            >
+              <Printer className="w-4 h-4" />
+              Print Label
+            </Button>
           </div>
         </div>
       </div>
+
+      <PrintLabelDialog
+        open={printDialogOpen}
+        onOpenChange={setPrintDialogOpen}
+        qrCodeUrl={qrCodeUrl}
+        readableId={container.readable_id}
+      />
     </div>
   );
 }
