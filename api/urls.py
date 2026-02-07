@@ -10,4 +10,5 @@ urlpatterns = [
     path('containers/uuid/<uuid:uuid>/', views.ContainerByUUIDView.as_view(), name='container-by-uuid'),
     path('locations/', views.LocationListView.as_view(), name='location-list'),
     path('qr-code/<uuid:uuid>/', views.QRCodeView.as_view(), name='qr-code'),
+    path('media/<uuid:photo_uuid>/', views.ProtectedMediaView.as_view(), name='protected-media'),
 ]

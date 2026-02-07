@@ -1,12 +1,28 @@
 import { useParams, Link } from 'react-router-dom';
-import { Package, MapPin, ArrowLeft, List, FileText, Image } from 'lucide-react';
+import { Package, MapPin, ArrowLeft, List, FileText, Image, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { containerColors, Container } from '@/types/container';
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
 
-const fetchContainer = async (uuid: string): Promise<Container> => {
-  const response = await fetch(`/api/containers/uuid/${uuid}/`);
+class PasswordProtectedError extends Error {
+  constructor() {
+    super('Password protected');
+    this.name = 'PasswordProtectedError';
+  }
+}
+
+const fetchContainer = async (uuid: string, token: string | null): Promise<Container> => {
+  const headers: HeadersInit = {};
+  if (token) {
+    headers['Authorization'] = `Token ${token}`;
+  }
+
+  const response = await fetch(`/api/containers/uuid/${uuid}/`, { headers });
+  if (response.status === 401) {
+    throw new PasswordProtectedError();
+  }
   if (!response.ok) {
     throw new Error('Container not found');
   }
@@ -15,17 +31,43 @@ const fetchContainer = async (uuid: string): Promise<Container> => {
 
 const ContainerView = () => {
   const { username, containerId } = useParams();
+  const { token } = useAuth();
 
   const { data: container, isLoading, error } = useQuery({
-    queryKey: ['container', containerId],
-    queryFn: () => fetchContainer(containerId || ''),
+    queryKey: ['container', containerId, token],
+    queryFn: () => fetchContainer(containerId || '', token),
     enabled: !!containerId,
   });
+
+  const isPasswordProtected = error instanceof PasswordProtectedError;
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
+  if (isPasswordProtected) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+            <Lock className="w-8 h-8 text-primary" />
+          </div>
+          <h1 className="font-display text-2xl font-bold text-foreground mb-2">
+            Password Protected
+          </h1>
+          <p className="text-muted-foreground mb-6">
+            This container is private. Only the owner can view its contents.
+          </p>
+          <Link to="/login">
+            <Button>
+              Log In to View
+            </Button>
+          </Link>
+        </div>
       </div>
     );
   }

@@ -28,7 +28,7 @@ interface ContainerModalProps {
   container?: Container | null;
 }
 
-const locations = ['Attic', 'Basement', 'Garage', 'Closet', 'Shed', 'Storage Unit', 'Other'];
+const locations = ['None', 'Attic', 'Basement', 'Garage', 'Closet', 'Shed', 'Storage Unit', 'Other'];
 
 const saveContainer = async ({ containerData, token, containerId }: { containerData: any, token: string, containerId?: number }) => {
   const formData = new FormData();
@@ -60,7 +60,7 @@ export function ContainerModal({ open, onClose, container }: ContainerModalProps
   const { token } = useAuth();
   const queryClient = useQueryClient();
   const [name, setName] = useState('');
-  const [location, setLocation] = useState('');
+  const [location, setLocation] = useState('None');
   const [otherLocation, setOtherLocation] = useState('');
   const [color, setColor] = useState<ContainerColor>('blue');
   const [isPasswordProtected, setIsPasswordProtected] = useState(false);
@@ -78,7 +78,10 @@ export function ContainerModal({ open, onClose, container }: ContainerModalProps
     if (container && open) {
       setName(container.name);
       // Check if location is in the predefined list
-      if (locations.includes(container.location)) {
+      if (!container.location) {
+        setLocation('None');
+        setOtherLocation('');
+      } else if (locations.includes(container.location)) {
         setLocation(container.location);
         setOtherLocation('');
       } else {
@@ -86,6 +89,7 @@ export function ContainerModal({ open, onClose, container }: ContainerModalProps
         setOtherLocation(container.location);
       }
       setColor(container.color);
+      setIsPasswordProtected(container.is_password_protected || false);
 
       // Set content type and data based on what exists
       if (container.items.length > 0) {
@@ -116,7 +120,7 @@ export function ContainerModal({ open, onClose, container }: ContainerModalProps
 
   const resetForm = () => {
     setName('');
-    setLocation('');
+    setLocation('None');
     setOtherLocation('');
     setColor('blue');
     setIsPasswordProtected(false);
@@ -133,10 +137,12 @@ export function ContainerModal({ open, onClose, container }: ContainerModalProps
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const locationValue = location === 'None' ? '' : (location === 'Other' ? otherLocation : location);
     const containerData: any = {
       name,
-      location: location === 'Other' ? otherLocation : location,
+      location: locationValue,
       color,
+      is_password_protected: isPasswordProtected,
     };
     if (contentType === 'photo' && photo) {
       containerData.photo = photo;
@@ -171,7 +177,7 @@ export function ContainerModal({ open, onClose, container }: ContainerModalProps
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Location</Label>
-              <Select value={location} onValueChange={setLocation} required>
+              <Select value={location} onValueChange={setLocation}>
                 <SelectTrigger><SelectValue placeholder="Select location" /></SelectTrigger>
                 <SelectContent>
                   {locations.map((loc) => (<SelectItem key={loc} value={loc}>{loc}</SelectItem>))}

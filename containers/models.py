@@ -1,6 +1,15 @@
+import os
 from django.db import models
 from django.conf import settings
-import uuid
+import uuid as uuid_lib
+
+
+def container_photo_path(instance, filename):
+    """Generate upload path: user_{id}/{container_uuid}/{photo_uuid}.{ext}"""
+    ext = os.path.splitext(filename)[1].lower()
+    photo_uuid = instance.uuid or uuid_lib.uuid4()
+    return f'user_{instance.container.user_id}/{instance.container.uuid}/{photo_uuid}{ext}'
+
 
 class Location(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -24,8 +33,9 @@ class Container(models.Model):
     other_location = models.CharField(max_length=100, blank=True)
     name = models.CharField(max_length=255)
     readable_id = models.CharField(max_length=10, unique=True)
-    uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    uuid = models.UUIDField(default=uuid_lib.uuid4, editable=False, unique=True)
     color = models.CharField(max_length=10, choices=Color.choices)
+    is_password_protected = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     last_accessed = models.DateTimeField(null=True, blank=True)
@@ -48,7 +58,8 @@ class ContentItem(models.Model):
 
 class ContainerPhoto(models.Model):
     container = models.ForeignKey(Container, on_delete=models.CASCADE, related_name='photos')
-    image = models.ImageField(upload_to='container_photos/')
+    uuid = models.UUIDField(default=uuid_lib.uuid4, editable=False, unique=True)
+    image = models.ImageField(upload_to=container_photo_path)
 
 class ContainerText(models.Model):
     container = models.ForeignKey(Container, on_delete=models.CASCADE, related_name='texts')

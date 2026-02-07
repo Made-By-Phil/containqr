@@ -28,6 +28,7 @@ export interface Container {
   updated_at: string;
   last_accessed?: string;
   color: ContainerColor;
+  is_password_protected: boolean;
 }
 
 export type ContainerColor =
