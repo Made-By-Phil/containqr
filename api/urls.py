@@ -1,5 +1,11 @@
 from django.urls import path
 from . import views
+from .stripe_views import (
+    CreateCheckoutSessionView,
+    StripeWebhookView,
+    SubscriptionStatusView,
+    VerifyCheckoutSessionView,
+)
 
 urlpatterns = [
     path('register/', views.UserRegistrationView.as_view(), name='register'),
@@ -11,4 +17,10 @@ urlpatterns = [
     path('locations/', views.LocationListView.as_view(), name='location-list'),
     path('qr-code/<uuid:uuid>/', views.QRCodeView.as_view(), name='qr-code'),
     path('media/<uuid:photo_uuid>/', views.ProtectedMediaView.as_view(), name='protected-media'),
+
+    # Stripe
+    path('stripe/create-checkout-session/', CreateCheckoutSessionView.as_view(), name='stripe-create-checkout'),
+    path('stripe/webhook/', StripeWebhookView.as_view(), name='stripe-webhook'),
+    path('stripe/subscription-status/', SubscriptionStatusView.as_view(), name='stripe-subscription-status'),
+    path('stripe/verify-session/', VerifyCheckoutSessionView.as_view(), name='stripe-verify-session'),
 ]

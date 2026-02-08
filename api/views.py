@@ -14,11 +14,14 @@ from django.utils.decorators import method_decorator
 from rest_framework.authtoken.models import Token
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.permissions import AllowAny
+from .permissions import HasActiveSubscription
 
 
 @method_decorator(csrf_exempt, name='dispatch')
 class UserRegistrationView(generics.CreateAPIView):
     serializer_class = CustomUserSerializer
+    permission_classes = [AllowAny]
 
 class UserLoginView(ObtainAuthToken):
     def post(self, request, *args, **kwargs):
@@ -31,7 +34,9 @@ class UserLoginView(ObtainAuthToken):
             'token': token.key,
             'user_id': user.pk,
             'email': user.email,
-            'username': user.username
+            'username': user.username,
+            'subscription_status': user.subscription_status,
+            'has_active_subscription': user.has_active_subscription,
         })
 
 
@@ -45,6 +50,7 @@ from rest_framework.parsers import MultiPartParser, FormParser
 class ContainerListView(generics.ListCreateAPIView):
     serializer_class = ContainerSerializer
     parser_classes = (MultiPartParser, FormParser)
+    permission_classes = [HasActiveSubscription]
 
     def get_queryset(self):
         queryset = Container.objects.filter(user=self.request.user)
@@ -85,6 +91,7 @@ class ContainerDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ContainerSerializer
     queryset = Container.objects.all()
     parser_classes = (MultiPartParser, FormParser)
+    permission_classes = [HasActiveSubscription]
 
 class ContainerByUUIDView(generics.RetrieveAPIView):
     """Public container view - checks password protection.
@@ -128,8 +135,12 @@ class ContainerByUUIDView(generics.RetrieveAPIView):
 class LocationListView(generics.ListAPIView):
     serializer_class = LocationSerializer
     queryset = Location.objects.all()
+    permission_classes = [HasActiveSubscription]
 
 class QRCodeView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
     def get(self, request, uuid):
         container = get_object_or_404(Container, uuid=uuid)
         qr = qrcode.QRCode(

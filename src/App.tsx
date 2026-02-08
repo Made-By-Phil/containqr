@@ -10,6 +10,8 @@ import ContainerView from "./pages/ContainerView";
 import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/Login";
 import RegisterPage from "./pages/Register";
+import RegisterSuccess from "./pages/RegisterSuccess";
+import RegisterCancel from "./pages/RegisterCancel";
 import PrivateRoute from "./components/PrivateRoute";
 
 const queryClient = new QueryClient();
@@ -26,6 +28,8 @@ const App = () => {
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              <Route path="/register/success" element={<RegisterSuccess />} />
+              <Route path="/register/cancel" element={<RegisterCancel />} />
               <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
               <Route path="/:username/:containerId" element={<ContainerView />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
