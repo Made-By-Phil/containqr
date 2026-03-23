@@ -70,8 +70,9 @@ describe('Dashboard', () => {
   it('renders heading and container count', async () => {
     renderDashboard();
     await waitFor(() => {
-      expect(screen.getByText(/my containers/i)).toBeInTheDocument();
+      expect(screen.getByText('Alpha Box')).toBeInTheDocument();
     });
+    expect(screen.getByText(/my containers/i)).toBeInTheDocument();
     expect(screen.getByText(/3 containers/i)).toBeInTheDocument();
   });
 

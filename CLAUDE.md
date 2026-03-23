@@ -60,3 +60,17 @@ Both servers need to run simultaneously for development. The Vite dev server pro
 - `GET/PUT/DELETE /containers/<id>/` - Container CRUD
 - `GET /locations/` - List available locations
 - `GET /qr-code/<uuid>/` - Generate QR code PNG for container
+
+## Design System
+Always read DESIGN.md before making any visual or UI decisions.
+All font choices, colors, spacing, and aesthetic direction are defined there.
+Do not deviate without explicit user approval.
+
+Key rules:
+- Accent color is amber (#D4820A) — never use blue, teal, or purple as primary
+- Background is warm off-white (#F7F4EF) in the app shell, dark canvas (#1A2B2B) for marketing pages ONLY
+- Fonts: Satoshi (display), DM Sans (body/UI), JetBrains Mono (identifiers/codes)
+- Container codes and access codes always use JetBrains Mono with letter-spacing: 0.3em
+- Touch targets minimum 44×44px (especially critical in /viewer routes — mobile-primary)
+- App shell uses list rows for containers, NOT card grids
+- /viewer/dashboard is search-first — no container list on initial load
