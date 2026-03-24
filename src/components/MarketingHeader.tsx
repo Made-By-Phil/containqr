@@ -1,22 +1,25 @@
 import { Package, Sun, Moon } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Button } from './ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { Button } from './ui/button';
-import { Link } from 'react-router-dom';
 
-export function Header() {
-  const { user, logout } = useAuth();
+export function MarketingHeader() {
+  const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <header className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-50">
+    <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur-sm">
       <div className="container mx-auto px-4 h-14 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2.5 group">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center group-hover:scale-105 transition-transform">
-            <Package className="w-4 h-4 text-primary-foreground" />
+        <Link to="/" className="flex items-center gap-2.5">
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center"
+            style={{ background: '#D4820A' }}
+          >
+            <Package className="w-4 h-4 text-white" />
           </div>
           <span className="font-display text-lg font-bold text-foreground">
-            Contain<span className="text-primary">QR</span>
+            Contain<span style={{ color: '#D4820A' }}>QR</span>
           </span>
         </Link>
 
@@ -33,6 +36,13 @@ export function Header() {
             )}
           </button>
 
+          <Link
+            to="/guide"
+            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Guide
+          </Link>
+
           {user ? (
             <>
               <Link
@@ -47,18 +57,9 @@ export function Header() {
               >
                 Account
               </Link>
-              <Button onClick={logout} size="sm" variant="outline">
-                Logout
-              </Button>
             </>
           ) : (
             <>
-              <Link
-                to="/#how-it-works"
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-              >
-                How It Works
-              </Link>
               <Link
                 to="/pricing"
                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
@@ -69,10 +70,16 @@ export function Header() {
                 to="/login"
                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
-                Login
+                Sign In
               </Link>
               <Link to="/register">
-                <Button size="sm">Get Started</Button>
+                <Button
+                  size="sm"
+                  className="border-0 font-semibold"
+                  style={{ background: '#D4820A', color: '#fff' }}
+                >
+                  Get Started
+                </Button>
               </Link>
             </>
           )}

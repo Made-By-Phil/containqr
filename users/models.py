@@ -20,6 +20,17 @@ class CustomUser(AbstractUser):
     )
     subscription_current_period_end = models.DateTimeField(null=True, blank=True)
 
+    # Household sharing
+    # household_passcode: 4-digit numeric string, hashed via make_password/check_password
+    household_passcode = models.CharField(max_length=255, blank=True, null=True)
+    # household_share_token: UUID for the shareable /view/<token>/ link; null = disabled
+    household_share_token = models.UUIDField(default=None, null=True, blank=True, unique=True)
+
+    # Onboarding tracking
+    qr_first_viewed_at = models.DateTimeField(null=True, blank=True)
+    household_search_used_at = models.DateTimeField(null=True, blank=True)
+    onboarding_dismissed = models.BooleanField(default=False)
+
     @property
     def has_active_subscription(self):
         """Check if user has an active or past_due (grace period) subscription."""
@@ -34,7 +45,6 @@ class PendingRegistration(models.Model):
     Cleaned up periodically for abandoned registrations.
     """
     id = models.UUIDField(primary_key=True, default=uuid_lib.uuid4, editable=False)
-    username = models.CharField(max_length=150)
     email = models.EmailField()
     password_hash = models.CharField(max_length=255)
     stripe_checkout_session_id = models.CharField(max_length=255, unique=True, null=True, blank=True)

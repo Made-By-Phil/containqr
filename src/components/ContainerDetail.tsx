@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Edit2, Trash2, MapPin, Calendar, Package, List, FileText, Image, Link as LinkIcon, Printer } from 'lucide-react';
+import { ArrowLeft, Edit2, Trash2, MapPin, Calendar, Package, List, FileText, Image, Link as LinkIcon, Printer, Lock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Container, containerColors } from '@/types/container';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,7 @@ export function ContainerDetail({ container, onBack, onEdit }: ContainerDetailPr
   const { user } = useAuth();
   const [printDialogOpen, setPrintDialogOpen] = useState(false);
   const colorValue = containerColors[container.color] || containerColors.blue;
-  const publicUrl = `/${user?.username}/${container.uuid}`;
+  const publicUrl = `/c/${container.uuid}`;
   const qrCodeUrl = `/api/qr-code/${container.uuid}/`;
   
   return (
@@ -55,10 +55,19 @@ export function ContainerDetail({ container, onBack, onEdit }: ContainerDetailPr
                 />
               </div>
               <div className="flex-1">
-                <div className="flex items-center gap-3 mb-1">
+                <div className="flex items-center gap-2 mb-1">
                   <h1 className="font-display text-2xl font-bold text-foreground">
                     {container.name}
                   </h1>
+                  {container.is_password_protected && (
+                    <div
+                      className="flex items-center justify-center w-6 h-6 rounded-md flex-shrink-0"
+                      style={{ background: 'rgba(212,130,10,0.12)' }}
+                      title="Password protected"
+                    >
+                      <Lock className="w-3.5 h-3.5" style={{ color: '#D4820A' }} />
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-4 text-muted-foreground">
                   <div className="flex items-center gap-1.5">

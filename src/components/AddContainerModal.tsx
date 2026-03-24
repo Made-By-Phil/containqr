@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Container, ContainerColor, containerColors } from '@/types/container';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface ContainerModalProps {
@@ -59,6 +59,16 @@ const saveContainer = async ({ containerData, token, containerId }: { containerD
 export function ContainerModal({ open, onClose, container }: ContainerModalProps) {
   const { token } = useAuth();
   const queryClient = useQueryClient();
+
+  const { data: passcodeStatus } = useQuery<{ has_passcode: boolean }>({
+    queryKey: ['passcode-status', token],
+    queryFn: async () => {
+      const res = await fetch('/api/account/passcode/', { headers: { 'Authorization': `Token ${token}` } });
+      return res.json();
+    },
+    enabled: !!token,
+    staleTime: 30_000,
+  });
   const [name, setName] = useState('');
   const [location, setLocation] = useState('None');
   const [otherLocation, setOtherLocation] = useState('');
@@ -199,12 +209,21 @@ export function ContainerModal({ open, onClose, container }: ContainerModalProps
               </div>
             </div>
           </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>Password Protection</Label>
-              <p className="text-sm text-muted-foreground">Require password to view contents</p>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Password Protection</Label>
+                <p className="text-sm text-muted-foreground">Require password to view contents</p>
+              </div>
+              <Switch checked={isPasswordProtected} onCheckedChange={setIsPasswordProtected} />
             </div>
-            <Switch checked={isPasswordProtected} onCheckedChange={setIsPasswordProtected} />
+            {isPasswordProtected && passcodeStatus && !passcodeStatus.has_passcode && (
+              <p className="text-sm" style={{ color: '#D4820A' }}>
+                No household passcode set.{' '}
+                <a href="/account" className="underline font-medium">Set one in Account</a>
+                {' '}before this protection takes effect.
+              </p>
+            )}
           </div>
 
           {/* Content Type Selection */}

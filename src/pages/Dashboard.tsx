@@ -1,11 +1,12 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Plus, Package, LayoutGrid, List, Edit2, Trash2, MapPin, ChevronDown, ArrowUp, ArrowDown, X } from 'lucide-react';
+import { Plus, Package, LayoutGrid, List, Edit2, Trash2, MapPin, ChevronDown, ArrowUp, ArrowDown, X, Lock } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { SearchBar } from '@/components/SearchBar';
 import { ContainerCard } from '@/components/ContainerCard';
 import { ContainerDetail } from '@/components/ContainerDetail';
 import { ContainerModal } from '@/components/AddContainerModal';
+import OnboardingChecklist from '@/components/OnboardingChecklist';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -54,6 +55,7 @@ const Dashboard = () => {
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
   const [sortBy, setSortBy] = useState<'name' | 'location' | 'color' | 'created_at' | 'updated_at'>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [showChecklist, setShowChecklist] = useState(true);
 
   const { data: containers = [], isLoading: isLoadingContainers } = useQuery<Container[]>({
     queryKey: ['containers', searchQuery, token],
@@ -187,6 +189,11 @@ const Dashboard = () => {
       <Header />
 
       <main className="container mx-auto px-4 py-8 flex-1">
+        {/* Onboarding checklist */}
+        {showChecklist && (
+          <OnboardingChecklist onDismiss={() => setShowChecklist(false)} />
+        )}
+
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
@@ -331,6 +338,9 @@ const Dashboard = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-foreground truncate">{container.name}</span>
+                        {container.is_password_protected && (
+                          <Lock className="w-3 h-3 flex-shrink-0" style={{ color: '#D4820A' }} />
+                        )}
                         <span className="text-xs font-mono text-muted-foreground">{container.readable_id}</span>
                       </div>
                       <div className="flex items-center gap-3 text-sm text-muted-foreground">

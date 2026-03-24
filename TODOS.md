@@ -6,16 +6,22 @@ Items deferred from sprint planning. Prioritized for future sprints.
 
 ## P1 — Next sprint (unblocked by Household Sharing sprint)
 
-### scan_qr onboarding step detection bug
+### scan_qr onboarding step detection bug ⚠️ NOW LIVE
 **What:** Track owner's own QR scans separately from viewer scans for onboarding detection.
-**Why:** `last_accessed` is only updated on viewer/public access. Owners scanning their own QR while logged in never complete the "Scan a QR code" onboarding step — the first-time activation experience is broken for every new user who tests their own QR code. Fix: add `owner_scanned_at` DateTimeField to Container, or track as an onboarding flag, separate from the sharing analytics `last_accessed` field.
+**Why:** `last_accessed` is only updated on viewer/public access. Owners scanning their own QR while logged in never complete the "Scan a QR code" onboarding step — the first-time activation experience is broken for every new user who tests their own QR code. Fix: add `owner_scanned_at` DateTimeField to Container, update `onboarding-status` API to check it, and set it in `ContainerByUUIDView` when the owner is authenticated.
 **Effort:** S (human: 2hrs / CC: 5min)
-**Depends on:** Onboarding checklist (ships in Household Sharing sprint — now unblocked)
+**Status:** UNBLOCKED — onboarding checklist now ships with this bug active. This is a P1 bug for every new user.
 
 ### Stripe price validation at startup
 **What:** In `AppConfig.ready()`, call `stripe.Price.retrieve(STRIPE_YEARLY_PRICE_ID)` and verify amount matches `STRIPE_YEARLY_PRICE_CENTS`. Log WARNING if drift detected.
 **Why:** The /pricing page now displays the price prominently. Pricing page shows env var price; Stripe charges price ID amount. They can drift independently without alert. User sees one price and is charged another — high trust impact.
 **Effort:** S (human: 1hr / CC: 5min)
+
+### Onboarding checklist deep-link steps
+**What:** Make each checklist step tappable and link directly to its action — step 1 opens the Add Container modal, step 3 opens QR view for their first container, step 5 scrolls to Share section in Account.
+**Why:** Currently the checklist is informational only. A user who hasn't added a container sees "Add your first container" but has no affordance to do it from the checklist. Deep-links turn it from a status indicator into an interactive guide.
+**Effort:** S (human: 3hrs / CC: ~10min)
+**Depends on:** Onboarding checklist (now shipped — this enhances it)
 
 ### Per-container household viewer visibility (private containers)
 **What:** Add a per-container toggle to hide specific containers from household viewer access while still accessible to the owner. The `is_password_protected` flag currently controls public URL access only — household viewers see all containers. This adds a separate `is_viewer_hidden` boolean.
@@ -26,6 +32,12 @@ Items deferred from sprint planning. Prioritized for future sprints.
 ---
 
 ## P3 — Future phase
+
+### Welcome email on subscription activation
+**What:** Send a welcome email when `checkout.session.completed` fires in the Stripe webhook. 3-tip format: "print your first label," "share with your household," "search from your phone."
+**Why:** New users land in the app cold with no onboarding email. The in-app checklist helps but email bridges the gap for users who close the browser before completing setup, or need a nudge hours later.
+**Effort:** M (human: 1-2 days / CC: ~45min)
+**Depends on:** Email infra (Resend or similar) — must be set up first. Hook into the existing Stripe webhook in `api/stripe_views.py`.
 
 ### Seasonal email campaigns
 **What:** Pre-season email nudges (spring cleaning, holiday decor rotation) to re-engage users before their high-motivation moments.

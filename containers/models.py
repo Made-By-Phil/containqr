@@ -35,10 +35,15 @@ class Container(models.Model):
     readable_id = models.CharField(max_length=10, unique=True)
     uuid = models.UUIDField(default=uuid_lib.uuid4, editable=False, unique=True)
     color = models.CharField(max_length=10, choices=Color.choices)
+    # is_password_protected: if True, viewing this container via its public UUID
+    # requires the owner's 4-digit household_passcode. Authenticated owner bypasses.
     is_password_protected = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     last_accessed = models.DateTimeField(null=True, blank=True)
+    # owner_scanned_at: set when the authenticated owner accesses this container
+    # via its public UUID (used for onboarding step 4 tracking)
+    owner_scanned_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         permissions = [

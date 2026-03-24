@@ -1,4 +1,4 @@
-import { Package, MapPin, ChevronRight, List, FileText, Image } from 'lucide-react';
+import { Package, MapPin, ChevronRight, List, FileText, Image, Lock } from 'lucide-react';
 import { Container, containerColors } from '@/types/container';
 import { Badge } from '@/components/ui/badge';
 
@@ -33,6 +33,9 @@ export function ContainerCard({ container, onClick }: ContainerCardProps) {
             <h3 className="font-display font-semibold text-foreground truncate">
               {container.name}
             </h3>
+            {container.is_password_protected && (
+              <Lock className="w-3 h-3 flex-shrink-0" style={{ color: '#D4820A' }} />
+            )}
           </div>
 
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">

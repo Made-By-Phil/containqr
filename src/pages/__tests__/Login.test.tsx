@@ -37,7 +37,7 @@ describe('LoginPage', () => {
 
   it('renders form fields and login button', () => {
     renderPage();
-    expect(screen.getByLabelText(/username/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /login/i })).toBeInTheDocument();
   });
@@ -49,14 +49,14 @@ describe('LoginPage', () => {
   });
 
   it('calls login and clears form on successful submit', async () => {
-    const userData = { token: 'tok_123', username: 'testuser' };
+    const userData = { token: 'tok_123', email: 'test@test.com' };
     vi.spyOn(global, 'fetch').mockResolvedValueOnce({
       ok: true,
       json: async () => userData,
     } as Response);
 
     renderPage();
-    fireEvent.change(screen.getByLabelText(/username/i), { target: { value: 'testuser' } });
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'test@test.com' } });
     fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'pass123' } });
     fireEvent.click(screen.getByRole('button', { name: /login/i }));
 
@@ -73,7 +73,7 @@ describe('LoginPage', () => {
     } as Response);
 
     renderPage();
-    fireEvent.change(screen.getByLabelText(/username/i), { target: { value: 'bad' } });
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'bad@test.com' } });
     fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'wrong' } });
     fireEvent.click(screen.getByRole('button', { name: /login/i }));
 
@@ -86,7 +86,7 @@ describe('LoginPage', () => {
     vi.spyOn(global, 'fetch').mockRejectedValueOnce(new Error('Network error'));
 
     renderPage();
-    fireEvent.change(screen.getByLabelText(/username/i), { target: { value: 'user' } });
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'user@test.com' } });
     fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'pass' } });
     fireEvent.click(screen.getByRole('button', { name: /login/i }));
 
@@ -96,7 +96,7 @@ describe('LoginPage', () => {
   });
 
   it('redirects to dashboard when user is already logged in', () => {
-    mockUser = { token: 'tok_123', username: 'testuser' };
+    mockUser = { token: 'tok_123', email: 'test@test.com' };
     renderPage();
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
   });
@@ -108,7 +108,7 @@ describe('LoginPage', () => {
     } as Response);
 
     renderPage();
-    fireEvent.change(screen.getByLabelText(/username/i), { target: { value: 'alice' } });
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'alice@test.com' } });
     fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'secret' } });
     fireEvent.click(screen.getByRole('button', { name: /login/i }));
 
@@ -116,7 +116,7 @@ describe('LoginPage', () => {
       expect(fetchSpy).toHaveBeenCalledWith('/api/login/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: 'alice', password: 'secret' }),
+        body: JSON.stringify({ email: 'alice@test.com', password: 'secret' }),
       });
     });
   });

@@ -106,7 +106,7 @@
 
 **`/pricing`:**
 1. Dark canvas header: "One price. Everything included."
-2. Price block: `$X / year` (Satoshi, large) → "Cancel anytime." (muted)
+2. Price block: `$29 / year` (Satoshi, large) → "Cancel anytime." (muted)
 3. What's included: bulleted list (no cards)
 4. [Get Started] CTA → /register
 
@@ -116,23 +116,43 @@
 3. Container list grouped by location (not grid — list rows with name, item count, last accessed)
 4. Empty state: warm illustration + "Add your first container" + [+ New Container]
 
-**`/viewer` (code entry):**
-1. Header: ContainQR logo (centered on mobile)
-2. Heading: "Enter household code"
-3. 6-character monospace input (large, centered, auto-submit at 6 chars)
-4. Subtext: "Ask the owner for the 6-character code"
-5. Error state: inline below input (no page reload)
+**`/c/<uuid>/` (public container view — updated):**
+1. Header: ContainQR logo + readable_id breadcrumb (existing)
+2. Container contents (existing)
+3. If `is_password_protected` AND not authenticated owner: 4-digit passcode overlay
+   - Full-screen centered modal (not page replace): "Enter passcode to view this box"
+   - 4 digit inputs (separate `<input>` fields, auto-advance, `inputMode="numeric"`)
+   - Auto-submits on 4th digit
+   - Error: inline below inputs "Incorrect passcode. Try again." (no page reload)
+   - Correct passcode: stored in sessionStorage, modal dismisses, content shown
+4. Discovery banner (shown to non-authenticated viewers, below content):
+   - Accent-pale background, amber left border
+   - "Want to search all boxes? [Search household →]" → links to inline search or share link prompt
+5. "Search all boxes" section (below discovery banner):
+   - Search input (full width)
+   - Results: list rows with container name, location, matched item names highlighted
+   - Tapping a result navigates to that container's `/c/<uuid>/`
 
-**`/viewer/dashboard` (search-first):**
-1. Sticky search bar (full width, pre-focused on mount)
-2. Muted subtitle: "Viewing [Owner name]'s household — read only"
-3. Initial state: empty prompt ("Search containers or items... Try 'holiday lights'")
-4. After search: container list results with item matches highlighted
-5. No container grid — list only, all viewports
+**`/view/<share_token>/` (shareable household search dashboard):**
+1. Header: ContainQR logo (viewer shell — no user menu)
+2. If owner has passcode configured: 4-digit passcode overlay (same as container view)
+3. Sticky search bar (full width, pre-focused on mount)
+4. Muted subtitle: "Searching [Owner name]'s household — read only"
+5. Initial state: placeholder "Search containers or items..."
+6. After search: container list results (name, location, item count, matched items highlighted)
+7. No container grid — list rows only, all viewports
+8. If share token is invalid/disabled: "This link is no longer active." + [Go home →]
 
 **`/account`:**
 1. Section "Subscription": status badge + renewal date + [Manage Billing] (→ Stripe portal)
-2. Section "Household Access": access code in monospace (letter-spacing 0.3em) + [Copy] + [Rotate]
+2. Section "Household Sharing":
+   a. Share Link: full URL (truncated, copyable) + [Copy Link] + [Rotate] + [Disable]
+      - Disabled state: "Link disabled" + [Enable] — no URL shown
+      - Rotating shows confirmation: "Old link will stop working immediately. Continue?"
+   b. Passcode: "Require a passcode to view password-protected boxes"
+      - If not set: [Set Passcode] → 4-digit input modal
+      - If set: "●●●●" (masked) + [Change] + [Remove]
+      - 4-digit only, numeric, no letters
 3. Section "Account": email (read-only) + [Sign Out]
 
 **`/print-labels` (desktop 2-col, mobile stacked):**
@@ -160,22 +180,30 @@
 
 | Feature | Loading | Empty | Error |
 |---------|---------|-------|-------|
-| /viewer/dashboard search | Skeleton: 5 rows, 80% width, animated | "No containers in this household yet." | 403: full-screen overlay "Household access has changed" + [Enter new code] + [Go home] |
-| /viewer code entry | Button spinner | n/a | "That code doesn't match any household. Try again." |
+| /view/<token> search | Skeleton: 5 rows, 80% width, animated | "No containers in this household yet." | Invalid/disabled token: "This link is no longer active." + [Go home] |
+| /c/<uuid> passcode prompt | 4th digit auto-submits (no spinner) | n/a | "Incorrect passcode. Try again." (inline, no reload) |
+| /c/<uuid> household search | Skeleton rows fade in | "No results for '[query]'" | "Couldn't search. [Retry]" |
 | /dashboard container list | Skeleton rows | Warm empty state illustration + CTA | "Couldn't load containers. [Retry]" |
 | /account Stripe portal | Button disabled + spinner | n/a | "Couldn't open billing portal. Try again or contact support." |
 | /print-labels PDF export | Progress indicator | "Select containers to print" | "Export failed. [Try again]" |
 
 ### Touch Targets
-All interactive elements: minimum 44×44px (iOS HIG). This is especially critical in `/viewer` and `/viewer/dashboard` which are mobile-primary.
+All interactive elements: minimum 44×44px (iOS HIG). This is especially critical in `/c/<uuid>/` and `/view/<share_token>/` which are mobile-primary (accessed via phone after scanning a QR or tapping a shared link).
+
+### Passcode Input Pattern
+- 4 separate `<input type="text" inputMode="numeric" maxLength={1}>` fields
+- Auto-advance on each digit; backspace moves to previous field
+- Auto-submits on 4th digit (no submit button needed)
+- Paste handling: pasting "1234" into first field populates all four
+- Wrong passcode: inputs clear + shake animation (100ms, 3px horizontal) + error message shown inline
 
 ### Offline Behavior
 - `navigator.onLine` check on mount
 - React Query `staleTime: 5 minutes` — show cached data with "Viewing offline data" banner
-- 403 mid-session (code rotation): full-screen overlay (not banner):
+- Expired/rotated share link mid-session: full-screen overlay (not banner):
   ```
-  "Household access has changed"
-  [Enter new code] → /viewer   [Go home] → /
+  "This link is no longer active."
+  [Go home →]
   ```
 
 ## Accessibility
@@ -183,7 +211,7 @@ All interactive elements: minimum 44×44px (iOS HIG). This is especially critica
 - ARIA landmarks: `<main>`, `<nav>`, `<header>` on every page
 - Screen readers: all icon-only buttons have `aria-label`; status badges have `role="status"`
 - Contrast: all text meets WCAG AA (4.5:1 for normal text, 3:1 for large text)
-- Viewer input: `inputMode="text"` + `maxLength={6}` + `autoFocus` + auto-submit at 6 chars
+- Passcode input: 4 separate numeric inputs, auto-advance, auto-submit on 4th digit (see Passcode Input Pattern above)
 
 ## AI Slop Avoidance Rules
 
@@ -208,17 +236,19 @@ These patterns are explicitly banned:
 ## Discovery Paths
 
 ### Discovery Banner (on public container view, `/c/<uuid>`)
-Shown only to non-authenticated viewers:
+Shown only to non-authenticated viewers, below container contents:
 ```
-"Want to search all containers? Ask the owner for the household code → containqr.com/viewer"
+"Search all boxes in this household →"
 ```
-Styled as a warm info banner (accent-pale background, amber left border). Not sticky — appears at top of content.
+Styled as a warm info banner (accent-pale `#FFF4E0` background, amber `#D4820A` left border, 3px). Not sticky. Tapping expands an inline search field (does not navigate away from the current container view).
 
-### Magic URL (`/v/:code`)
-- New React Router route
-- On load: `GET /api/household/validate/?code=ABC123`
-- Valid → redirect to `/viewer/dashboard` with code in component state (NOT localStorage)
-- Invalid → redirect to `/viewer` with error pre-populated
+### Shareable Link (`/view/<share_token>/`)
+- Owner generates from `/account` → Household Sharing section
+- UUID-based token stored on User model (`household_share_token`)
+- Can be rotated (new UUID, old link immediately invalid) or disabled (token set to null)
+- If owner has `household_passcode` set: viewer is prompted on first access per session
+- Passcode stored in sessionStorage only — never localStorage, never sent to server except for validation
+- Backend: `GET /api/view/<share_token>/containers/?q=<query>` — validates token, returns all containers
 
 ## Decisions Log
 
@@ -230,6 +260,10 @@ Styled as a warm info banner (accent-pale background, amber left border). Not st
 | 2026-03-23 | Dark canvas (#1A2B2B) for marketing pages only | Differentiation without sacrificing app usability. |
 | 2026-03-23 | Search-first viewer dashboard | Search IS the product for viewers. Showing a container grid on load would be wrong — they don't know which container to look at. |
 | 2026-03-23 | No brand wordmark on physical labels | Labels serve the user, not the product. QR + code + name is all that's needed. |
-| 2026-03-23 | Yearly price only ($X/year), no monthly comparison | Annual framing, no monthly anchor to minimize perceived price. "One price. Everything included. Cancel anytime." |
-| 2026-03-23 | JetBrains Mono for all identifiers | Container codes and access codes need to be scannable at a glance. Monospace + letter-spacing makes them unmistakable. |
+| 2026-03-23 | Yearly price $29/year, no monthly comparison | Annual framing, no monthly anchor to minimize perceived price. "One price. Everything included. Cancel anytime." |
+| 2026-03-23 | JetBrains Mono for all identifiers | Container codes need to be scannable at a glance. Monospace + letter-spacing makes them unmistakable. |
 | 2026-03-23 | Initial design system created | Created by /design-consultation based on product context + /plan-design-review findings |
+| 2026-03-23 | No 6-char household code — shareable UUID link instead | Verbal codes create friction (transcription errors, "is that a zero or an O?"). UUID link is copy-paste via text. Passcode is separate for protection, not access discovery. |
+| 2026-03-23 | 4-digit numeric passcode (not alphanumeric) | Easiest to share verbally and remember. 10,000 combinations is sufficient for household trust model (not banking). Rate-limited on backend. |
+| 2026-03-23 | is_password_protected semantics: passcode gate, not owner-only | Password protection now means "requires 4-digit household passcode." Authenticated owner always bypasses. Not a privacy/hidden flag — that's a future feature (is_viewer_hidden in TODOS). |
+| 2026-03-23 | Passcode in sessionStorage only, never localStorage | Passcode should expire when browser closes. Family member shares a device? Next session re-prompts. localStorage would be permanent and unexpected. |
