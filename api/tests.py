@@ -70,9 +70,9 @@ class UserLoginViewTest(TestCase):
             subscription_status='active',
         )
 
-    def test_successful_login_returns_subscription_fields(self):
+    def test_successful_login_with_email_returns_subscription_fields(self):
         response = self.client.post('/api/login/', {
-            'username': 'loginuser', 'password': 'testpass123',
+            'email': 'login@test.com', 'password': 'testpass123',
         })
         self.assertEqual(response.status_code, 200)
         data = response.json()
@@ -81,11 +81,23 @@ class UserLoginViewTest(TestCase):
         self.assertIn('has_active_subscription', data)
         self.assertEqual(data['subscription_status'], 'active')
         self.assertTrue(data['has_active_subscription'])
-        self.assertEqual(data['username'], 'loginuser')
+        self.assertNotIn('username', data)
 
-    def test_invalid_credentials_returns_400(self):
+    def test_login_email_case_insensitive(self):
         response = self.client.post('/api/login/', {
-            'username': 'loginuser', 'password': 'wrongpassword',
+            'email': 'LOGIN@TEST.COM', 'password': 'testpass123',
+        })
+        self.assertEqual(response.status_code, 200)
+
+    def test_login_unknown_email_returns_400(self):
+        response = self.client.post('/api/login/', {
+            'email': 'nobody@test.com', 'password': 'testpass123',
+        })
+        self.assertEqual(response.status_code, 400)
+
+    def test_login_wrong_password_returns_400(self):
+        response = self.client.post('/api/login/', {
+            'email': 'login@test.com', 'password': 'wrongpassword',
         })
         self.assertEqual(response.status_code, 400)
 
@@ -135,7 +147,7 @@ class CreateCheckoutSessionViewTest(TestCase):
         mock_create.return_value = mock_session
 
         response = self.client.post(self.url, {
-            'username': 'newuser', 'email': 'new@test.com', 'password': 'testpass123',
+            'email': 'new@test.com', 'password': 'testpass123',
         }, format='json')
         self.assertEqual(response.status_code, 200)
         data = response.json()
@@ -150,55 +162,47 @@ class CreateCheckoutSessionViewTest(TestCase):
         mock_create.return_value = mock_session
 
         self.client.post(self.url, {
-            'username': 'newuser', 'email': 'new@test.com', 'password': 'testpass123',
+            'email': 'new@test.com', 'password': 'testpass123',
         }, format='json')
-        self.assertTrue(PendingRegistration.objects.filter(username='newuser').exists())
+        self.assertTrue(PendingRegistration.objects.filter(email='new@test.com').exists())
 
-    def test_missing_username_returns_400(self):
+    def test_missing_email_returns_400(self):
         response = self.client.post(self.url, {
-            'username': '', 'email': 'new@test.com', 'password': 'testpass123',
+            'email': '', 'password': 'testpass123',
         }, format='json')
         self.assertEqual(response.status_code, 400)
-        self.assertIn('username', response.json())
-
-    def test_duplicate_username_returns_400(self):
-        CustomUser.objects.create_user(username='taken', email='t@test.com', password='pass1234')
-        response = self.client.post(self.url, {
-            'username': 'taken', 'email': 'new@test.com', 'password': 'testpass123',
-        }, format='json')
-        self.assertEqual(response.status_code, 400)
-        self.assertIn('username', response.json())
+        self.assertIn('email', response.json())
 
     def test_duplicate_email_returns_400(self):
         CustomUser.objects.create_user(username='other', email='taken@test.com', password='pass1234')
         response = self.client.post(self.url, {
-            'username': 'newuser', 'email': 'taken@test.com', 'password': 'testpass123',
+            'email': 'taken@test.com', 'password': 'testpass123',
         }, format='json')
         self.assertEqual(response.status_code, 400)
         self.assertIn('email', response.json())
 
     def test_short_password_returns_400(self):
         response = self.client.post(self.url, {
-            'username': 'newuser', 'email': 'new@test.com', 'password': 'short',
+            'email': 'new@test.com', 'password': 'short',
         }, format='json')
         self.assertEqual(response.status_code, 400)
         self.assertIn('password', response.json())
 
     @patch('api.stripe_views.stripe.checkout.Session.create')
-    def test_cleans_up_existing_pending_for_same_username(self, mock_create):
+    def test_cleans_up_existing_pending_for_same_email(self, mock_create):
         mock_session = MagicMock()
         mock_session.url = 'https://checkout.stripe.com/test'
         mock_session.id = 'cs_test_789'
         mock_create.return_value = mock_session
 
         PendingRegistration.objects.create(
-            username='newuser', email='old@test.com', password_hash='oldhash',
+            email='new@test.com', password_hash='oldhash',
         )
         self.client.post(self.url, {
-            'username': 'newuser', 'email': 'new@test.com', 'password': 'testpass123',
+            'email': 'new@test.com', 'password': 'testpass123',
         }, format='json')
-        # Old one deleted, new one created
-        self.assertEqual(PendingRegistration.objects.filter(username='newuser').count(), 1)
+        # Old one deleted, new one created for same email
+        self.assertEqual(PendingRegistration.objects.filter(email='new@test.com').count(), 1)
 
 
 class StripeWebhookViewTest(TestCase):
@@ -206,7 +210,6 @@ class StripeWebhookViewTest(TestCase):
         self.client = APIClient()
         self.url = '/api/stripe/webhook/'
         self.pending = PendingRegistration.objects.create(
-            username='webhookuser',
             email='webhook@test.com',
             password_hash=make_password('testpass123'),
         )
@@ -247,7 +250,7 @@ class StripeWebhookViewTest(TestCase):
             'subscription': 'sub_test456',
         })
         self.assertEqual(response.status_code, 200)
-        user = CustomUser.objects.get(username='webhookuser')
+        user = CustomUser.objects.get(email='webhook@test.com')
         self.assertEqual(user.stripe_customer_id, 'cus_test123')
         self.assertEqual(user.stripe_subscription_id, 'sub_test456')
         self.assertEqual(user.subscription_status, 'active')
@@ -271,7 +274,7 @@ class StripeWebhookViewTest(TestCase):
         mock_sub.current_period_end = 1735689600
         mock_sub_retrieve.return_value = mock_sub
 
-        # Create user first
+        # Create user first (idempotency: user with same email already exists)
         CustomUser.objects.create_user(
             username='webhookuser', email='webhook@test.com', password='testpass123'
         )
@@ -281,8 +284,8 @@ class StripeWebhookViewTest(TestCase):
             'subscription': 'sub_test456',
         })
         self.assertEqual(response.status_code, 200)
-        # Only one user exists
-        self.assertEqual(CustomUser.objects.filter(username='webhookuser').count(), 1)
+        # Only one user exists for this email
+        self.assertEqual(CustomUser.objects.filter(email='webhook@test.com').count(), 1)
 
     def test_invoice_paid_updates_status(self):
         user = CustomUser.objects.create_user(
@@ -693,11 +696,27 @@ class ContainerByUUIDViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['name'], 'Public Box')
 
-    def test_private_container_returns_401_without_auth(self):
+    def test_private_container_returns_401_without_passcode(self):
         url = f'/api/containers/uuid/{self.private_container.uuid}/'
         response = self.client.get(url)
         self.assertEqual(response.status_code, 401)
-        self.assertIn('password protected', response.json()['detail'].lower())
+        self.assertTrue(response.json().get('requires_passcode'))
+
+    def test_private_container_accessible_with_correct_passcode(self):
+        from django.contrib.auth.hashers import make_password
+        self.owner.household_passcode = make_password('1234')
+        self.owner.save()
+        url = f'/api/containers/uuid/{self.private_container.uuid}/?passcode=1234'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_private_container_rejected_with_wrong_passcode(self):
+        from django.contrib.auth.hashers import make_password
+        self.owner.household_passcode = make_password('1234')
+        self.owner.save()
+        url = f'/api/containers/uuid/{self.private_container.uuid}/?passcode=9999'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 401)
 
     def test_private_container_accessible_by_owner(self):
         url = f'/api/containers/uuid/{self.private_container.uuid}/'
@@ -879,3 +898,565 @@ class LocationListTest(_AuthenticatedTestCase):
         self.user.save()
         response = self.client.get('/api/locations/')
         self.assertEqual(response.status_code, 403)
+
+
+class HouseholdSearchViewTest(TestCase):
+    """GET /api/household-search/?container=<uuid>&q=<query>"""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.owner = CustomUser.objects.create_user(
+            username='owner', email='owner@test.com', password='testpass123',
+            subscription_status='active',
+        )
+        self.public_container = Container.objects.create(
+            user=self.owner, name='Toolbox', readable_id='TB01', color='red',
+            is_password_protected=False,
+        )
+        self.private_container = Container.objects.create(
+            user=self.owner, name='Medicine Cabinet', readable_id='MC01', color='blue',
+            is_password_protected=True,
+        )
+        ContentItem.objects.create(container=self.public_container, name='Hammer', quantity=1)
+        ContentItem.objects.create(container=self.public_container, name='Wrench', quantity=2)
+        ContentItem.objects.create(container=self.private_container, name='Aspirin', quantity=10)
+
+    def test_search_requires_container_uuid(self):
+        response = self.client.get('/api/household-search/', {'q': 'Hammer'})
+        self.assertEqual(response.status_code, 400)
+
+    def test_search_invalid_uuid_returns_404(self):
+        import uuid
+        response = self.client.get('/api/household-search/', {
+            'container': str(uuid.uuid4()), 'q': 'Hammer'
+        })
+        self.assertEqual(response.status_code, 404)
+
+    def test_search_public_container_no_passcode(self):
+        response = self.client.get('/api/household-search/', {
+            'container': str(self.public_container.uuid), 'q': 'Hammer'
+        })
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn('results', data)
+
+    def test_search_private_container_without_passcode_returns_401(self):
+        response = self.client.get('/api/household-search/', {
+            'container': str(self.private_container.uuid), 'q': 'Aspirin'
+        })
+        self.assertEqual(response.status_code, 401)
+        self.assertTrue(response.json().get('requires_passcode'))
+
+    def test_search_private_container_with_correct_passcode(self):
+        self.owner.household_passcode = make_password('1234')
+        self.owner.save()
+        response = self.client.get('/api/household-search/', {
+            'container': str(self.private_container.uuid),
+            'q': 'Aspirin',
+            'passcode': '1234',
+        })
+        self.assertEqual(response.status_code, 200)
+
+    def test_search_private_container_with_wrong_passcode_returns_401(self):
+        self.owner.household_passcode = make_password('1234')
+        self.owner.save()
+        response = self.client.get('/api/household-search/', {
+            'container': str(self.private_container.uuid),
+            'q': 'Aspirin',
+            'passcode': '9999',
+        })
+        self.assertEqual(response.status_code, 401)
+
+    def test_search_results_span_all_owner_containers(self):
+        """Search results include containers beyond the entry-point container."""
+        other_container = Container.objects.create(
+            user=self.owner, name='Storage Box', readable_id='SB01', color='green',
+        )
+        ContentItem.objects.create(container=other_container, name='Hammer Clone', quantity=1)
+        response = self.client.get('/api/household-search/', {
+            'container': str(self.public_container.uuid), 'q': 'Hammer'
+        })
+        self.assertEqual(response.status_code, 200)
+        container_names = [r['name'] for r in response.json()['results']]
+        self.assertIn('Toolbox', container_names)
+        self.assertIn('Storage Box', container_names)
+
+    def test_search_tracks_household_search_used_at(self):
+        self.assertIsNone(self.owner.household_search_used_at)
+        self.client.get('/api/household-search/', {
+            'container': str(self.public_container.uuid), 'q': 'Hammer'
+        })
+        self.owner.refresh_from_db()
+        self.assertIsNotNone(self.owner.household_search_used_at)
+
+    def test_authenticated_owner_bypasses_passcode(self):
+        token = Token.objects.create(user=self.owner)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {token.key}')
+        response = self.client.get('/api/household-search/', {
+            'container': str(self.private_container.uuid), 'q': 'Aspirin'
+        })
+        self.assertEqual(response.status_code, 200)
+
+
+class ValidatePasscodeViewTest(TestCase):
+    """POST /api/validate-passcode/ with rate limiting."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.owner = CustomUser.objects.create_user(
+            username='owner', email='owner@test.com', password='testpass123',
+            subscription_status='active',
+        )
+        self.owner.household_passcode = make_password('5678')
+        self.owner.save()
+        self.container = Container.objects.create(
+            user=self.owner, name='Locked Box', readable_id='LB01', color='black',
+            is_password_protected=True,
+        )
+
+    def test_correct_passcode_returns_200(self):
+        response = self.client.post('/api/validate-passcode/', {
+            'container': str(self.container.uuid),
+            'passcode': '5678',
+        }, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json().get('valid'))
+
+    def test_wrong_passcode_returns_401(self):
+        response = self.client.post('/api/validate-passcode/', {
+            'container': str(self.container.uuid),
+            'passcode': '0000',
+        }, format='json')
+        self.assertEqual(response.status_code, 401)
+        self.assertFalse(response.json().get('valid'))
+
+    def test_missing_fields_returns_400(self):
+        response = self.client.post('/api/validate-passcode/', {
+            'passcode': '5678',
+        }, format='json')
+        self.assertEqual(response.status_code, 400)
+
+    def test_invalid_uuid_returns_404(self):
+        import uuid
+        response = self.client.post('/api/validate-passcode/', {
+            'container': str(uuid.uuid4()),
+            'passcode': '5678',
+        }, format='json')
+        self.assertEqual(response.status_code, 404)
+
+    @patch('django.core.cache.cache.get', return_value=10)
+    def test_rate_limit_blocks_after_max_attempts(self, mock_cache_get):
+        response = self.client.post('/api/validate-passcode/', {
+            'container': str(self.container.uuid),
+            'passcode': '0000',
+        }, format='json')
+        self.assertEqual(response.status_code, 429)
+
+
+class ViewerDashboardTest(TestCase):
+    """Tests for /api/view/<share_token>/ endpoints."""
+
+    def setUp(self):
+        self.client = APIClient()
+        import uuid
+        self.owner = CustomUser.objects.create_user(
+            username='owner', email='owner@test.com', password='testpass123',
+            subscription_status='active',
+            household_share_token=uuid.uuid4(),
+        )
+        self.public_container = Container.objects.create(
+            user=self.owner, name='Garage Box', readable_id='GB01', color='orange',
+        )
+        self.private_container = Container.objects.create(
+            user=self.owner, name='Private Box', readable_id='PB01', color='purple',
+            is_password_protected=True,
+        )
+        ContentItem.objects.create(container=self.public_container, name='Drill', quantity=1)
+
+    def test_meta_returns_requires_passcode_false_when_no_passcode_set(self):
+        url = f'/api/view/{self.owner.household_share_token}/meta/'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.json().get('requires_passcode'))
+
+    def test_meta_returns_requires_passcode_true_when_passcode_set(self):
+        self.owner.household_passcode = make_password('1234')
+        self.owner.save()
+        url = f'/api/view/{self.owner.household_share_token}/meta/'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json().get('requires_passcode'))
+
+    def test_meta_invalid_token_returns_404(self):
+        import uuid
+        response = self.client.get(f'/api/view/{uuid.uuid4()}/meta/')
+        self.assertEqual(response.status_code, 404)
+
+    def test_search_public_no_passcode(self):
+        url = f'/api/view/{self.owner.household_share_token}/containers/'
+        response = self.client.get(url, {'q': 'Drill'})
+        self.assertEqual(response.status_code, 200)
+
+    def test_search_requires_passcode_when_set(self):
+        self.owner.household_passcode = make_password('1234')
+        self.owner.save()
+        url = f'/api/view/{self.owner.household_share_token}/containers/'
+        response = self.client.get(url, {'q': 'Drill'})
+        self.assertEqual(response.status_code, 401)
+        self.assertTrue(response.json().get('requires_passcode'))
+
+    def test_search_with_correct_passcode(self):
+        self.owner.household_passcode = make_password('1234')
+        self.owner.save()
+        url = f'/api/view/{self.owner.household_share_token}/containers/'
+        response = self.client.get(url, {'q': 'Drill', 'passcode': '1234'})
+        self.assertEqual(response.status_code, 200)
+
+    def test_search_with_wrong_passcode_returns_401(self):
+        self.owner.household_passcode = make_password('1234')
+        self.owner.save()
+        url = f'/api/view/{self.owner.household_share_token}/containers/'
+        response = self.client.get(url, {'q': 'Drill', 'passcode': '9999'})
+        self.assertEqual(response.status_code, 401)
+
+    def test_validate_share_passcode_correct(self):
+        self.owner.household_passcode = make_password('1234')
+        self.owner.save()
+        url = f'/api/view/{self.owner.household_share_token}/validate-passcode/'
+        response = self.client.post(url, {'passcode': '1234'}, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json().get('valid'))  # {'valid': True}
+
+    def test_validate_share_passcode_wrong(self):
+        self.owner.household_passcode = make_password('1234')
+        self.owner.save()
+        url = f'/api/view/{self.owner.household_share_token}/validate-passcode/'
+        response = self.client.post(url, {'passcode': '0000'}, format='json')
+        self.assertEqual(response.status_code, 401)
+        self.assertFalse(response.json().get('valid'))
+
+    def test_disabled_share_token_returns_404(self):
+        """Share token set to None means sharing is disabled."""
+        self.owner.household_share_token = None
+        self.owner.save()
+        import uuid
+        response = self.client.get(f'/api/view/{uuid.uuid4()}/meta/')
+        self.assertEqual(response.status_code, 404)
+
+    @patch('django.core.cache.cache.get', return_value=10)
+    def test_rate_limit_blocks_after_max_attempts(self, mock_cache_get):
+        self.owner.household_passcode = make_password('1234')
+        self.owner.save()
+        url = f'/api/view/{self.owner.household_share_token}/validate-passcode/'
+        response = self.client.post(url, {
+            'share_token': str(self.owner.household_share_token),
+            'passcode': '0000',
+        }, format='json')
+        self.assertEqual(response.status_code, 429)
+
+
+class OnboardingStatusViewTest(TestCase):
+    """GET /api/onboarding-status/ — 5-step completion tracking."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = CustomUser.objects.create_user(
+            username='newuser', email='new@test.com', password='testpass123',
+            subscription_status='active',
+        )
+        token = Token.objects.create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {token.key}')
+
+    def test_all_steps_incomplete_on_new_account(self):
+        response = self.client.get('/api/onboarding-status/')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertFalse(data['add_container'])
+        self.assertFalse(data['add_items'])
+        self.assertFalse(data['view_qr'])
+        self.assertFalse(data['scan_qr'])
+        self.assertFalse(data['share_household'])
+
+    def test_add_container_step_complete_when_container_exists(self):
+        Container.objects.create(
+            user=self.user, name='Box', readable_id='BX01', color='red'
+        )
+        response = self.client.get('/api/onboarding-status/')
+        self.assertTrue(response.json()['add_container'])
+
+    def test_add_items_step_complete_when_content_item_exists(self):
+        container = Container.objects.create(
+            user=self.user, name='Box', readable_id='BX01', color='red'
+        )
+        ContentItem.objects.create(container=container, name='Widget', quantity=1)
+        response = self.client.get('/api/onboarding-status/')
+        self.assertTrue(response.json()['add_items'])
+
+    def test_view_qr_step_complete_when_qr_first_viewed_at_set(self):
+        from django.utils import timezone
+        self.user.qr_first_viewed_at = timezone.now()
+        self.user.save()
+        response = self.client.get('/api/onboarding-status/')
+        self.assertTrue(response.json()['view_qr'])
+
+    def test_scan_qr_step_complete_when_owner_scanned_at_set(self):
+        from django.utils import timezone
+        Container.objects.create(
+            user=self.user, name='Box', readable_id='BX01', color='red',
+            owner_scanned_at=timezone.now(),
+        )
+        response = self.client.get('/api/onboarding-status/')
+        self.assertTrue(response.json()['scan_qr'])
+
+    def test_share_household_step_complete_when_household_search_used(self):
+        from django.utils import timezone
+        self.user.household_search_used_at = timezone.now()
+        self.user.save()
+        response = self.client.get('/api/onboarding-status/')
+        self.assertTrue(response.json()['share_household'])
+
+    def test_requires_authentication(self):
+        self.client.credentials()
+        response = self.client.get('/api/onboarding-status/')
+        self.assertEqual(response.status_code, 401)
+
+
+class OnboardingDismissViewTest(TestCase):
+    """POST /api/onboarding-dismiss/ — server-side dismiss flag."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = CustomUser.objects.create_user(
+            username='dismissuser', email='dismiss@test.com', password='testpass123',
+            subscription_status='active',
+        )
+        token = Token.objects.create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {token.key}')
+
+    def test_dismiss_sets_server_flag(self):
+        self.assertFalse(self.user.onboarding_dismissed)
+        response = self.client.post('/api/onboarding-dismiss/')
+        self.assertEqual(response.status_code, 204)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.onboarding_dismissed)
+
+    def test_dismiss_is_idempotent(self):
+        self.user.onboarding_dismissed = True
+        self.user.save()
+        response = self.client.post('/api/onboarding-dismiss/')
+        self.assertEqual(response.status_code, 204)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.onboarding_dismissed)
+
+    def test_dismiss_requires_authentication(self):
+        self.client.credentials()
+        response = self.client.post('/api/onboarding-dismiss/')
+        self.assertEqual(response.status_code, 401)
+
+
+class ShareLinkViewTest(TestCase):
+    """GET/POST/DELETE /api/account/share-link/"""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = CustomUser.objects.create_user(
+            username='user', email='user@test.com', password='testpass123',
+            subscription_status='active',
+        )
+        token = Token.objects.create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {token.key}')
+
+    def test_get_returns_null_when_no_share_token(self):
+        response = self.client.get('/api/account/share-link/')
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.json().get('share_token'))
+
+    def test_post_generates_share_token(self):
+        response = self.client.post('/api/account/share-link/')
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNotNone(response.json().get('share_token'))
+        self.user.refresh_from_db()
+        self.assertIsNotNone(self.user.household_share_token)
+
+    def test_post_rotates_existing_token(self):
+        import uuid
+        old_token = uuid.uuid4()
+        self.user.household_share_token = old_token
+        self.user.save()
+        response = self.client.post('/api/account/share-link/')
+        self.assertEqual(response.status_code, 200)
+        new_token = response.json().get('share_token')
+        self.assertIsNotNone(new_token)
+        self.assertNotEqual(str(old_token), new_token)
+
+    def test_delete_disables_share_link(self):
+        import uuid
+        self.user.household_share_token = uuid.uuid4()
+        self.user.save()
+        response = self.client.delete('/api/account/share-link/')
+        self.assertEqual(response.status_code, 200)
+        self.user.refresh_from_db()
+        self.assertIsNone(self.user.household_share_token)
+
+    def test_requires_authentication(self):
+        self.client.credentials()
+        response = self.client.get('/api/account/share-link/')
+        self.assertEqual(response.status_code, 401)
+
+
+class PasscodeViewTest(TestCase):
+    """GET/POST/DELETE /api/account/passcode/"""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = CustomUser.objects.create_user(
+            username='user', email='user@test.com', password='testpass123',
+            subscription_status='active',
+        )
+        token = Token.objects.create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {token.key}')
+
+    def test_get_returns_has_passcode_false_when_no_passcode(self):
+        response = self.client.get('/api/account/passcode/')
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.json().get('has_passcode'))
+
+    def test_get_returns_has_passcode_true_when_passcode_set(self):
+        self.user.household_passcode = make_password('1234')
+        self.user.save()
+        response = self.client.get('/api/account/passcode/')
+        self.assertTrue(response.json().get('has_passcode'))
+
+    def test_post_sets_passcode(self):
+        response = self.client.post('/api/account/passcode/', {'passcode': '4321'}, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.user.refresh_from_db()
+        self.assertIsNotNone(self.user.household_passcode)
+
+    def test_post_rejects_non_4_digit_passcode(self):
+        response = self.client.post('/api/account/passcode/', {'passcode': '123'}, format='json')
+        self.assertEqual(response.status_code, 400)
+
+    def test_post_rejects_non_numeric_passcode(self):
+        response = self.client.post('/api/account/passcode/', {'passcode': 'abcd'}, format='json')
+        self.assertEqual(response.status_code, 400)
+
+    def test_post_rejects_5_digit_passcode(self):
+        response = self.client.post('/api/account/passcode/', {'passcode': '12345'}, format='json')
+        self.assertEqual(response.status_code, 400)
+
+    def test_delete_removes_passcode(self):
+        self.user.household_passcode = make_password('1234')
+        self.user.save()
+        response = self.client.delete('/api/account/passcode/')
+        self.assertEqual(response.status_code, 200)
+        self.user.refresh_from_db()
+        self.assertIsNone(self.user.household_passcode)
+
+    def test_requires_authentication(self):
+        self.client.credentials()
+        response = self.client.get('/api/account/passcode/')
+        self.assertEqual(response.status_code, 401)
+
+
+class QRCodeTrackingTest(TestCase):
+    """QRCodeView sets qr_first_viewed_at on first authenticated owner view."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.owner = CustomUser.objects.create_user(
+            username='owner', email='owner@test.com', password='testpass123',
+            subscription_status='active',
+        )
+        self.other_user = CustomUser.objects.create_user(
+            username='other', email='other@test.com', password='testpass123',
+            subscription_status='active',
+        )
+        self.container = Container.objects.create(
+            user=self.owner, name='Box', readable_id='BX01', color='red',
+        )
+
+    def test_owner_first_qr_view_sets_timestamp(self):
+        self.assertIsNone(self.owner.qr_first_viewed_at)
+        token = Token.objects.create(user=self.owner)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {token.key}')
+        response = self.client.get(f'/api/qr-code/{self.container.uuid}/')
+        self.assertEqual(response.status_code, 200)
+        self.owner.refresh_from_db()
+        self.assertIsNotNone(self.owner.qr_first_viewed_at)
+
+    def test_owner_second_qr_view_does_not_update_timestamp(self):
+        from django.utils import timezone
+        first_time = timezone.now()
+        self.owner.qr_first_viewed_at = first_time
+        self.owner.save()
+        token = Token.objects.create(user=self.owner)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {token.key}')
+        self.client.get(f'/api/qr-code/{self.container.uuid}/')
+        self.owner.refresh_from_db()
+        self.assertEqual(self.owner.qr_first_viewed_at, first_time)
+
+    def test_unauthenticated_qr_view_does_not_set_timestamp(self):
+        response = self.client.get(f'/api/qr-code/{self.container.uuid}/')
+        # Public access is allowed but won't set tracking
+        self.owner.refresh_from_db()
+        self.assertIsNone(self.owner.qr_first_viewed_at)
+
+    def test_non_owner_qr_view_does_not_set_owner_timestamp(self):
+        token = Token.objects.create(user=self.other_user)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {token.key}')
+        # QR codes are public — non-owner can view but it should NOT set owner's timestamp
+        response = self.client.get(f'/api/qr-code/{self.container.uuid}/')
+        self.assertEqual(response.status_code, 200)
+        self.owner.refresh_from_db()
+        self.assertIsNone(self.owner.qr_first_viewed_at)
+
+
+class OwnerScannedAtTest(TestCase):
+    """ContainerByUUIDView sets owner_scanned_at on first authenticated owner scan."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.owner = CustomUser.objects.create_user(
+            username='owner', email='owner@test.com', password='testpass123',
+            subscription_status='active',
+        )
+        self.other_user = CustomUser.objects.create_user(
+            username='other', email='other@test.com', password='testpass123',
+            subscription_status='active',
+        )
+        token = Token.objects.create(user=self.owner)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {token.key}')
+        self.container = Container.objects.create(
+            user=self.owner, name='Box', readable_id='BX01', color='red',
+        )
+
+    def test_owner_uuid_scan_sets_owner_scanned_at(self):
+        self.assertIsNone(self.container.owner_scanned_at)
+        response = self.client.get(f'/api/containers/uuid/{self.container.uuid}/')
+        self.assertEqual(response.status_code, 200)
+        self.container.refresh_from_db()
+        self.assertIsNotNone(self.container.owner_scanned_at)
+
+    def test_owner_second_scan_does_not_update_timestamp(self):
+        from django.utils import timezone
+        first_time = timezone.now()
+        self.container.owner_scanned_at = first_time
+        self.container.save()
+        self.client.get(f'/api/containers/uuid/{self.container.uuid}/')
+        self.container.refresh_from_db()
+        self.assertEqual(self.container.owner_scanned_at, first_time)
+
+    def test_anonymous_scan_does_not_set_owner_scanned_at(self):
+        self.client.credentials()
+        self.client.get(f'/api/containers/uuid/{self.container.uuid}/')
+        self.container.refresh_from_db()
+        self.assertIsNone(self.container.owner_scanned_at)
+
+    def test_other_user_scan_does_not_set_owner_scanned_at(self):
+        other_token = Token.objects.create(user=self.other_user)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {other_token.key}')
+        # This should return a valid response (public access) but not set the owner field
+        self.client.get(f'/api/containers/uuid/{self.container.uuid}/')
+        self.container.refresh_from_db()
+        self.assertIsNone(self.container.owner_scanned_at)

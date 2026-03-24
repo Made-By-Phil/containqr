@@ -29,15 +29,15 @@ const makeContainer = (overrides = {}) => ({
   ...overrides,
 });
 
-const renderPage = (uuid = 'abc-123', username = 'phil') => {
+const renderPage = (uuid = 'abc-123') => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={[`/${username}/${uuid}`]}>
+      <MemoryRouter initialEntries={[`/c/${uuid}`]}>
         <Routes>
-          <Route path="/:username/:containerId" element={<ContainerView />} />
+          <Route path="/c/:uuid" element={<ContainerView />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>
@@ -128,18 +128,30 @@ describe('ContainerView', () => {
     });
   });
 
-  it('shows password-protected screen on 401', async () => {
+  it('shows passcode overlay when 401 with requires_passcode', async () => {
     vi.spyOn(global, 'fetch').mockResolvedValueOnce({
       ok: false,
       status: 401,
-      json: async () => ({ detail: 'Password protected' }),
+      json: async () => ({ detail: 'This container requires a passcode.', requires_passcode: true }),
     } as Response);
 
     renderPage();
     await waitFor(() => {
-      expect(screen.getByText(/password protected/i)).toBeInTheDocument();
+      expect(screen.getByText(/enter passcode to view this box/i)).toBeInTheDocument();
     });
-    expect(screen.getByRole('link', { name: /log in to view/i })).toHaveAttribute('href', '/login');
+  });
+
+  it('shows container not found on 401 without requires_passcode', async () => {
+    vi.spyOn(global, 'fetch').mockResolvedValueOnce({
+      ok: false,
+      status: 401,
+      json: async () => ({ detail: 'Unauthorized' }),
+    } as Response);
+
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByText(/container not found/i)).toBeInTheDocument();
+    });
   });
 
   it('sends auth token when user is logged in', async () => {
@@ -174,15 +186,15 @@ describe('ContainerView', () => {
     expect(options?.headers?.['Authorization']).toBeUndefined();
   });
 
-  it('displays readable_id and username in header', async () => {
+  it('displays readable_id in header', async () => {
     vi.spyOn(global, 'fetch').mockResolvedValueOnce({
       ok: true,
       json: async () => makeContainer(),
     } as Response);
 
-    renderPage('abc-123', 'phil');
+    renderPage('abc-123');
     await waitFor(() => {
-      expect(screen.getByText('phil/GAB01')).toBeInTheDocument();
+      expect(screen.getAllByText('GAB01').length).toBeGreaterThan(0);
     });
   });
 });

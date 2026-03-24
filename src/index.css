@@ -1,46 +1,49 @@
+@import url('https://api.fontshare.com/v2/css?f[]=satoshi@700,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
-
 @layer base {
   :root {
-    --background: 40 30% 97%;
-    --foreground: 220 20% 15%;
+    /* Warm off-white background (#F7F4EF) */
+    --background: 40 25% 95%;
+    --foreground: 0 0% 10%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 20% 15%;
+    --card-foreground: 0 0% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 20% 15%;
+    --popover-foreground: 0 0% 10%;
 
-    --primary: 174 60% 40%;
+    /* Amber accent (#D4820A) */
+    --primary: 35 90% 44%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 40 25% 92%;
-    --secondary-foreground: 220 20% 25%;
+    --secondary: 40 20% 92%;
+    --secondary-foreground: 0 0% 20%;
 
-    --muted: 40 20% 94%;
-    --muted-foreground: 220 10% 45%;
+    --muted: 40 15% 93%;
+    --muted-foreground: 220 9% 46%;
 
-    --accent: 35 90% 55%;
+    --accent: 35 90% 44%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 72% 51%;
+    --destructive: 0 60% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 40 20% 88%;
-    --input: 40 20% 88%;
-    --ring: 174 60% 40%;
+    /* Warm border (#E5E2DC) */
+    --border: 40 10% 87%;
+    --input: 40 10% 87%;
+    --ring: 35 90% 44%;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
 
     /* Custom tokens */
-    --container-shadow: 0 2px 8px -2px hsl(220 20% 15% / 0.08), 0 4px 16px -4px hsl(220 20% 15% / 0.06);
-    --container-shadow-hover: 0 4px 12px -2px hsl(220 20% 15% / 0.12), 0 8px 24px -4px hsl(220 20% 15% / 0.08);
-    --qr-bg: 174 60% 96%;
-    --success: 155 60% 45%;
+    --container-shadow: 0 1px 4px -1px hsl(0 0% 0% / 0.08), 0 2px 8px -2px hsl(0 0% 0% / 0.05);
+    --container-shadow-hover: 0 4px 12px -2px hsl(0 0% 0% / 0.12), 0 8px 24px -4px hsl(0 0% 0% / 0.07);
+    --success: 145 40% 35%;
     --success-foreground: 0 0% 100%;
 
     --sidebar-background: 0 0% 98%;
@@ -50,52 +53,54 @@
     --sidebar-accent: 240 4.8% 95.9%;
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-ring: 35 90% 44%;
   }
 
   .dark {
-    --background: 220 20% 10%;
-    --foreground: 40 20% 95%;
+    /* Dark canvas (#1A2B2B) is the primary background in dark mode */
+    --background: 180 25% 14%;
+    --foreground: 40 20% 92%;
 
-    --card: 220 18% 14%;
-    --card-foreground: 40 20% 95%;
+    /* Surface slightly lighter than background */
+    --card: 180 20% 18%;
+    --card-foreground: 40 20% 92%;
 
-    --popover: 220 18% 14%;
-    --popover-foreground: 40 20% 95%;
+    --popover: 180 20% 18%;
+    --popover-foreground: 40 20% 92%;
 
-    --primary: 174 55% 50%;
-    --primary-foreground: 220 20% 10%;
+    /* Amber slightly lighter in dark mode (#E8943F) */
+    --primary: 33 80% 57%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 15% 20%;
-    --secondary-foreground: 40 20% 90%;
+    --secondary: 180 15% 22%;
+    --secondary-foreground: 40 20% 88%;
 
-    --muted: 220 15% 18%;
-    --muted-foreground: 40 15% 60%;
+    --muted: 180 15% 20%;
+    --muted-foreground: 180 8% 55%;
 
-    --accent: 35 85% 55%;
-    --accent-foreground: 220 20% 10%;
+    --accent: 33 80% 57%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 65% 55%;
+    --destructive: 0 60% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 15% 22%;
-    --input: 220 15% 22%;
-    --ring: 174 55% 50%;
+    --border: 180 15% 24%;
+    --input: 180 15% 24%;
+    --ring: 33 80% 57%;
 
-    --container-shadow: 0 2px 8px -2px hsl(0 0% 0% / 0.3), 0 4px 16px -4px hsl(0 0% 0% / 0.25);
-    --container-shadow-hover: 0 4px 12px -2px hsl(0 0% 0% / 0.4), 0 8px 24px -4px hsl(0 0% 0% / 0.3);
-    --qr-bg: 174 40% 15%;
-    --success: 155 55% 50%;
-    --success-foreground: 220 20% 10%;
+    --container-shadow: 0 2px 8px -2px hsl(0 0% 0% / 0.4), 0 4px 16px -4px hsl(0 0% 0% / 0.3);
+    --container-shadow-hover: 0 4px 12px -2px hsl(0 0% 0% / 0.5), 0 8px 24px -4px hsl(0 0% 0% / 0.35);
+    --success: 145 40% 45%;
+    --success-foreground: 0 0% 100%;
 
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-background: 180 25% 12%;
+    --sidebar-foreground: 40 15% 85%;
+    --sidebar-primary: 33 80% 57%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 180 15% 20%;
+    --sidebar-accent-foreground: 40 15% 85%;
+    --sidebar-border: 180 15% 22%;
+    --sidebar-ring: 33 80% 57%;
   }
 }
 
@@ -106,11 +111,11 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'DM Sans', system-ui, sans-serif;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-family: 'Satoshi', system-ui, sans-serif;
   }
 }
 
@@ -126,22 +131,13 @@
     transform: translateY(-2px);
   }
 
+  /* Static panels (account settings, modals) — no hover lift */
+  .settings-panel {
+    @apply bg-card rounded-xl border border-border;
+    box-shadow: var(--container-shadow);
+  }
+
   .qr-container {
-    @apply rounded-lg p-4;
-    background: hsl(var(--qr-bg));
-  }
-
-  .gradient-text {
-    @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%);
-  }
-
-  .hero-gradient {
-    background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--muted)) 50%, hsl(var(--secondary)) 100%);
-  }
-
-  .subtle-pattern {
-    background-image: radial-gradient(hsl(var(--border)) 1px, transparent 1px);
-    background-size: 24px 24px;
+    @apply rounded-lg p-4 bg-muted;
   }
 }

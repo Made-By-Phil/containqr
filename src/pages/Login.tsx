@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 const LoginPage = () => {
   const navigate = useNavigate();
   const { user, login } = useAuth();
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
@@ -20,12 +20,12 @@ const LoginPage = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ email, password }),
       });
       if (response.ok) {
         const userData = await response.json();
         login(userData);
-        setUsername('');
+        setEmail('');
         setPassword('');
         setError('');
       } else {
@@ -48,12 +48,12 @@ const LoginPage = () => {
         <h1 className="text-2xl font-bold text-center">Login</h1>
         <form onSubmit={handleLogin} className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="username">Username</Label>
+            <Label htmlFor="email">Email</Label>
             <Input
-              id="username"
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required
             />
           </div>

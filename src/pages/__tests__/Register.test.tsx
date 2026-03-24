@@ -17,10 +17,11 @@ describe('RegisterPage', () => {
 
   it('renders form fields and submit button', () => {
     renderPage();
-    expect(screen.getByLabelText(/username/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /continue to payment/i })).toBeInTheDocument();
+    // No username field
+    expect(screen.queryByLabelText(/username/i)).not.toBeInTheDocument();
   });
 
   it('shows heading and pricing text', () => {
@@ -51,7 +52,6 @@ describe('RegisterPage', () => {
     } as Response);
 
     renderPage();
-    fireEvent.change(screen.getByLabelText(/username/i), { target: { value: 'testuser' } });
     fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'test@test.com' } });
     fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'testpass123' } });
     fireEvent.click(screen.getByRole('button', { name: /continue to payment/i }));
@@ -65,19 +65,16 @@ describe('RegisterPage', () => {
     vi.spyOn(global, 'fetch').mockResolvedValueOnce({
       ok: false,
       json: async () => ({
-        username: ['A user with that username already exists.'],
         email: ['A user with that email already exists.'],
       }),
     } as Response);
 
     renderPage();
-    fireEvent.change(screen.getByLabelText(/username/i), { target: { value: 'taken' } });
     fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'taken@test.com' } });
     fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'testpass123' } });
     fireEvent.click(screen.getByRole('button', { name: /continue to payment/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/a user with that username already exists/i)).toBeInTheDocument();
       expect(screen.getByText(/a user with that email already exists/i)).toBeInTheDocument();
     });
   });
@@ -89,7 +86,6 @@ describe('RegisterPage', () => {
     } as Response);
 
     renderPage();
-    fireEvent.change(screen.getByLabelText(/username/i), { target: { value: 'user' } });
     fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'u@t.com' } });
     fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'testpass123' } });
     fireEvent.click(screen.getByRole('button', { name: /continue to payment/i }));
@@ -103,7 +99,6 @@ describe('RegisterPage', () => {
     vi.spyOn(global, 'fetch').mockRejectedValueOnce(new Error('Network error'));
 
     renderPage();
-    fireEvent.change(screen.getByLabelText(/username/i), { target: { value: 'user' } });
     fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'u@t.com' } });
     fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'testpass123' } });
     fireEvent.click(screen.getByRole('button', { name: /continue to payment/i }));
@@ -121,7 +116,6 @@ describe('RegisterPage', () => {
     vi.spyOn(global, 'fetch').mockReturnValueOnce(pendingPromise as Promise<Response>);
 
     renderPage();
-    fireEvent.change(screen.getByLabelText(/username/i), { target: { value: 'user' } });
     fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'u@t.com' } });
     fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'testpass123' } });
     fireEvent.click(screen.getByRole('button', { name: /continue to payment/i }));
@@ -131,7 +125,6 @@ describe('RegisterPage', () => {
     });
 
     // Inputs should be disabled
-    expect(screen.getByLabelText(/username/i)).toBeDisabled();
     expect(screen.getByLabelText(/email/i)).toBeDisabled();
     expect(screen.getByLabelText(/password/i)).toBeDisabled();
 

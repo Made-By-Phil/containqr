@@ -47,31 +47,29 @@ class CustomUserSubscriptionTest(TestCase):
 class PendingRegistrationTest(TestCase):
     def test_create_pending_registration(self):
         pending = PendingRegistration.objects.create(
-            username='newuser',
             email='new@example.com',
             password_hash=make_password('testpass123'),
         )
         self.assertIsNotNone(pending.id)
         self.assertIsNotNone(pending.created_at)
-        self.assertEqual(pending.username, 'newuser')
         self.assertEqual(pending.email, 'new@example.com')
 
     def test_uuid_primary_key_auto_generated(self):
         pending = PendingRegistration.objects.create(
-            username='user1', email='u1@example.com', password_hash='hash1'
+            email='u1@example.com', password_hash='hash1'
         )
         pending2 = PendingRegistration.objects.create(
-            username='user2', email='u2@example.com', password_hash='hash2'
+            email='u2@example.com', password_hash='hash2'
         )
         self.assertNotEqual(pending.id, pending2.id)
 
     def test_checkout_session_id_unique(self):
         PendingRegistration.objects.create(
-            username='user1', email='u1@example.com',
+            email='u1@example.com',
             password_hash='hash1', stripe_checkout_session_id='cs_123'
         )
         with self.assertRaises(Exception):
             PendingRegistration.objects.create(
-                username='user2', email='u2@example.com',
+                email='u2@example.com',
                 password_hash='hash2', stripe_checkout_session_id='cs_123'
             )

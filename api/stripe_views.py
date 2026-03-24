@@ -1,3 +1,4 @@
+import re
 import stripe
 from datetime import datetime
 from django.conf import settings
@@ -12,6 +13,17 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from users.models import CustomUser, PendingRegistration
 
+
+def _generate_unique_username(email):
+    """Derive a unique Django username from an email address."""
+    prefix = re.sub(r'[^a-zA-Z0-9_]', '_', email.split('@')[0])[:30] or 'user'
+    username = prefix
+    counter = 1
+    while CustomUser.objects.filter(username=username).exists():
+        username = f'{prefix}_{counter}'
+        counter += 1
+    return username
+
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
@@ -21,17 +33,11 @@ class CreateCheckoutSessionView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        username = request.data.get('username', '').strip()
         email = request.data.get('email', '').strip()
         password = request.data.get('password', '')
 
         # Validate registration data before creating checkout session
         errors = {}
-        if not username:
-            errors['username'] = ['Username is required.']
-        elif CustomUser.objects.filter(username=username).exists():
-            errors['username'] = ['A user with that username already exists.']
-
         if not email:
             errors['email'] = ['Email is required.']
         elif CustomUser.objects.filter(email=email).exists():
@@ -43,13 +49,11 @@ class CreateCheckoutSessionView(APIView):
         if errors:
             return Response(errors, status=status.HTTP_400_BAD_REQUEST)
 
-        # Clean up any existing pending registration for this username/email
-        PendingRegistration.objects.filter(username=username).delete()
+        # Clean up any existing pending registration for this email
         PendingRegistration.objects.filter(email=email).delete()
 
-        # Create PendingRegistration with hashed password
+        # Create PendingRegistration with hashed password (username generated at account creation)
         pending = PendingRegistration.objects.create(
-            username=username,
             email=email,
             password_hash=make_password(password),
         )
@@ -68,7 +72,6 @@ class CreateCheckoutSessionView(APIView):
                 customer_email=email,
                 metadata={
                     'pending_registration_id': str(pending.id),
-                    'username': username,
                 },
             )
 
@@ -135,13 +138,13 @@ class StripeWebhookView(APIView):
             return
 
         # Idempotency: check if user already exists
-        if CustomUser.objects.filter(username=pending.username).exists():
+        if CustomUser.objects.filter(email=pending.email).exists():
             pending.delete()
             return
 
-        # Create the real user account
+        # Create the real user account (generate username from email)
         user = CustomUser(
-            username=pending.username,
+            username=_generate_unique_username(pending.email),
             email=pending.email,
         )
         user.password = pending.password_hash  # Already hashed
