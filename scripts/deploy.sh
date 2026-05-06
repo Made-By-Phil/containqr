@@ -6,6 +6,7 @@ VENV_DIR="/srv/containqr/venv"
 ENV_FILE="/srv/containqr/env/.env"
 SERVICE_NAME="containqr"
 TARGET_REF="${1:-main}"
+FRONTEND_ARCHIVE="${2:-}"
 
 if [[ ! -d "$APP_DIR/.git" ]]; then
   echo "App repo not found at $APP_DIR" >&2
@@ -26,12 +27,15 @@ source "$VENV_DIR/bin/activate"
 pip install --upgrade pip
 pip install -r requirements.txt
 
-npm ci
-npm run build
-
 set -a
 source "$ENV_FILE"
 set +a
+
+if [[ -n "$FRONTEND_ARCHIVE" ]]; then
+  rm -rf "$APP_DIR/dist"
+  mkdir -p "$APP_DIR/dist"
+  tar -xzf "$FRONTEND_ARCHIVE" -C "$APP_DIR/dist"
+fi
 
 python manage.py migrate --noinput
 python manage.py collectstatic --noinput

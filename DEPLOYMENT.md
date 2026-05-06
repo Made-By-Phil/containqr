@@ -80,8 +80,8 @@ Deploys should run through `scripts/deploy.sh`.
 What the deploy script does:
 - fetch latest code
 - reset to the target commit
-- ensure Python and Node dependencies are installed
-- build the frontend
+- ensure Python dependencies are installed
+- optionally unpack a prebuilt frontend artifact uploaded by GitHub Actions
 - run Django migrations
 - collect static files
 - restart gunicorn
@@ -104,8 +104,10 @@ Run on pushes and PRs:
 
 ### CD
 Run on push to `main`:
+- build the frontend in GitHub Actions
+- upload the built frontend artifact to EC2 over SSH
 - SSH to EC2
-- execute deploy script with target commit SHA
+- execute deploy script with target commit SHA and artifact path
 
 ## Production URLs
 
@@ -122,6 +124,10 @@ Required checks:
 - login/register page loads
 - container API responds for an authenticated user
 - Stripe-related environment variables are present
+
+## Operational note
+
+For small EC2 instances, avoid building the frontend on the box during deploys. Let GitHub Actions handle the heavy frontend build work and keep the server-side deploy focused on pulling code, installing backend dependencies, unpacking built assets, migrating, and restarting services.
 
 ## Remaining manual work after these repo changes
 
