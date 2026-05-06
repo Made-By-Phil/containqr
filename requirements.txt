@@ -1,0 +1,8 @@
+Django>=6.0,<6.1
+djangorestframework>=3.16,<3.17
+django-cors-headers>=4.7,<4.8
+stripe>=12.2,<13
+python-dotenv>=1.1,<1.2
+qrcode[pil]>=8.2,<8.3
+Pillow>=11.3,<11.4
+gunicorn>=23.0,<24

@@ -6,8 +6,11 @@ from .stripe_views import (
     SubscriptionStatusView,
     VerifyCheckoutSessionView,
 )
+from .health_views import HealthCheckView
 
 urlpatterns = [
+    path('health/', HealthCheckView.as_view(), name='health-check'),
+
     # Auth
     path('register/', views.UserRegistrationView.as_view(), name='register'),
     path('login/', views.UserLoginView.as_view(), name='login'),
