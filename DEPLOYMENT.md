@@ -86,7 +86,7 @@ What the deploy script does:
 - collect static files
 - restart gunicorn
 - reload nginx
-- verify `/api/health/`
+- verify `/api/health/` with a short readiness retry window
 
 ## Data rules
 

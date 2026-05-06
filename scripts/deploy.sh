@@ -43,6 +43,13 @@ python manage.py collectstatic --noinput
 sudo systemctl restart "$SERVICE_NAME"
 sudo systemctl reload nginx
 
-curl --fail http://127.0.0.1:8001/api/health/ >/dev/null
+for i in {1..30}; do
+  if curl --fail --silent http://127.0.0.1:8001/api/health/ >/dev/null; then
+    echo "ContainQR deploy completed successfully."
+    exit 0
+  fi
+  sleep 1
+done
 
-echo "ContainQR deploy completed successfully."
+echo "ContainQR failed health check after restart." >&2
+exit 1
