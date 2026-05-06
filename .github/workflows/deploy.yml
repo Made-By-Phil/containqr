@@ -12,6 +12,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Package frontend build
+        run: tar -czf dist.tar.gz -C dist .
+
       - name: Write SSH key
         run: |
           mkdir -p ~/.ssh
@@ -22,8 +37,13 @@ jobs:
         run: |
           ssh-keyscan -H "${{ secrets.CONTAINQR_SSH_HOST }}" >> ~/.ssh/known_hosts
 
+      - name: Upload frontend build artifact
+        run: |
+          scp -i ~/.ssh/id_containqr dist.tar.gz \
+            ${{ secrets.CONTAINQR_SSH_USER }}@${{ secrets.CONTAINQR_SSH_HOST }}:/tmp/containqr-dist.tar.gz
+
       - name: Deploy
         run: |
           ssh -i ~/.ssh/id_containqr \
             ${{ secrets.CONTAINQR_SSH_USER }}@${{ secrets.CONTAINQR_SSH_HOST }} \
-            "bash /srv/containqr/app/scripts/deploy.sh ${{ github.sha }}"
+            "bash /srv/containqr/app/scripts/deploy.sh ${{ github.sha }} /tmp/containqr-dist.tar.gz"
