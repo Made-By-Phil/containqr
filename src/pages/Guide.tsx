@@ -65,22 +65,22 @@ function GettingStarted() {
     {
       n: '01',
       title: 'Create your containers',
-      body: "From the dashboard, add each storage bin, shelf, or box. Give it a name, a location (Attic, Garage, Closet…), a colour, and list what's inside, items, a text description, or a photo.",
+      body: "From the dashboard, add each storage bin, shelf, or box. Give it a name, a location (Attic, Garage, Closet…), a colour, and list what's inside — items, a text description, or a photo.",
     },
     {
       n: '02',
       title: 'Print and attach labels',
-      body: "Open a container's detail page and print its QR label. Stick it on the bin. The label shows only the QR code and a short readable ID like GAR01, no branding, no clutter. The label serves you, not us.",
+      body: "Open a container's detail page and print its QR label. Stick it on the bin. The label shows only the QR code and a short readable ID like GAR01 — no branding, no clutter. The label serves you, not us.",
     },
     {
       n: '03',
       title: 'Scan to see contents',
-      body: "Point any phone camera at the QR code. No app to install. The container's full contents open instantly in the browser, items, notes, or photos, exactly as you entered them.",
+      body: "Point any phone camera at the QR code. No app to install. The container's full contents open instantly in the browser — items, notes, or photos, exactly as you entered them.",
     },
     {
       n: '04',
       title: "Search when you're not sure which box",
-      body: "If you know what you're looking for but not where it is, use the household search link to search across every container at once. Type 'fairy lights' and it will tell you which box they are in.",
+      body: 'If you know what you\'re looking for but not where it is, use the household search link to search across every container at once. Type “fairy lights” and it\'ll tell you which box they\'re in.',
     },
   ];
 
