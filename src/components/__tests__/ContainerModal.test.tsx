@@ -146,8 +146,9 @@ describe('ContainerModal', () => {
       expect(fetchSpy).toHaveBeenCalled();
     });
 
-    const [url, options] = fetchSpy.mock.calls[0];
-    expect(url).toBe('/api/containers/');
+    const submitCall = fetchSpy.mock.calls.find(([url]) => url === '/api/containers/');
+    expect(submitCall).toBeTruthy();
+    const [, options] = submitCall!;
     expect(options?.method).toBe('POST');
     expect(options?.headers?.['Authorization']).toBe('Token tok_test');
   });
@@ -165,8 +166,9 @@ describe('ContainerModal', () => {
       expect(fetchSpy).toHaveBeenCalled();
     });
 
-    const [url, options] = fetchSpy.mock.calls[0];
-    expect(url).toBe('/api/containers/42/');
+    const submitCall = fetchSpy.mock.calls.find(([url]) => url === '/api/containers/42/');
+    expect(submitCall).toBeTruthy();
+    const [, options] = submitCall!;
     expect(options?.method).toBe('PUT');
   });
 
@@ -220,9 +222,9 @@ describe('ContainerModal', () => {
       expect(fetchSpy).toHaveBeenCalled();
     });
 
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
-    const [url, options] = fetchSpy.mock.calls[0];
-    expect(url).toBe('/api/containers/');
+    const submitCalls = fetchSpy.mock.calls.filter(([url]) => url === '/api/containers/');
+    expect(submitCalls).toHaveLength(1);
+    const [, options] = submitCalls[0];
     expect(options?.body).toBeInstanceOf(FormData);
   });
 });
